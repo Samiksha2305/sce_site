@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Southern_California_AOI"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.8,
+              32.5
+            ],
+            [
+              -114.75,
+              32.5
+            ],
+            [
+              -114.75,
+              37.1
+            ],
+            [
+              -122.8,
+              37.1
+            ],
+            [
+              -122.8,
+              32.5
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

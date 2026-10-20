@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Postfire recovery atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --page:#E9DFC1;
+    --card:#F7F1DD;
+    --card-2:#EFE5C7;
+    --ink:#221F17;
+    --ink-soft:#5C5645;
+    --ink-faint:#8C826A;
+    --line:#CDBF93;
+    --line-strong:#A9986B;
+    --forest:#2F5233;
+    --forest-soft:#5B7A4E;
+    --ember:#B23A1F;
+    --ember-soft:#C96A4C;
+    --gold:#B9862E;
+    --azure:#2C6E82;
+    --slate:#6B6455;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background-color:var(--page);
+    background-image:
+      repeating-radial-gradient(circle at 8% 4%, transparent 0 46px, rgba(34,31,23,.05) 46px 47px, transparent 47px 92px),
+      repeating-radial-gradient(circle at 96% 92%, transparent 0 60px, rgba(34,31,23,.045) 60px 61px, transparent 61px 120px);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .atlas{max-width:1240px;margin:0 auto;padding:30px 22px 70px;}
+
+  /* ---- hero ---- */
+  .hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;
+    border-bottom:2.5px solid var(--ink);padding-bottom:16px;margin-bottom:20px;}
+  .hero h1{font-family:'Bitter',serif;font-weight:700;font-size:32px;margin:0 0 6px;letter-spacing:-0.01em;}
+  .hero p{margin:0;font-size:13.5px;color:var(--ink-soft);max-width:480px;line-height:1.55;}
+  .hero-actions{display:flex;gap:8px;}
+  .stamp-btn{
+    background:var(--card);border:1.5px solid var(--ink);border-radius:6px;padding:9px 15px;
+    font-family:'Bitter',serif;font-weight:600;font-size:12.5px;color:var(--ink);cursor:pointer;
+    transition:background .15s;text-decoration:none;display:inline-flex;align-items:center;
+  }
+  .stamp-btn:hover{background:var(--card-2);}
+  .stamp-btn:active{transform:scale(.97);}
+  .tile-picker{display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
+  .tile-picker span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+  .tile-select{
+    background:var(--card);border:1.5px solid var(--ink);border-radius:6px;padding:9px 12px;
+    font-family:'Bitter',serif;font-weight:600;font-size:12.5px;color:var(--ink);cursor:pointer;
+    min-width:180px;
+  }
+
+  /* ---- tabstrip ---- */
+  .tabstrip{display:flex;flex-wrap:wrap;gap:4px;border-bottom:2px solid var(--ink);margin-bottom:8px;}
+  .tabstrip-tsf{margin-bottom:12px;}
+  .tsf-panel{display:none;background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:10px;margin-bottom:18px;}
+  .tsf-panel.show{display:block;}
+  .tsf-stage{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+  #tsfMap{flex:1 1 640px;min-width:min(100%,640px);height:min(72vh,840px);border:1px solid var(--line-strong);border-radius:4px;background:#dce6d4;}
+  #tsfMap .leaflet-container{width:100%;height:100%;}
+  #tsfImg{width:100%;max-width:1100px;height:auto;display:none;border:1px solid var(--line-strong);border-radius:4px;background:#e8eee4;}
+  .tsf-legend{min-width:220px;max-width:280px;background:#fff;border:2px solid var(--ink);border-radius:6px;padding:12px 14px;font-size:13px;line-height:1.35;}
+  .tsf-legend-title{font-weight:700;margin-bottom:8px;}
+  .tsf-swatch{display:flex;align-items:center;gap:8px;margin:4px 0;}
+  .tsf-swatch i{width:16px;height:16px;border:1px solid #555;display:inline-block;flex:0 0 16px;}
+  .tsf-note{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;line-height:1.5;}
+  .tsf-note a{color:var(--forest);}
+  .tabstrip-label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin:2px 0 6px;}
+  .tab{
+    padding:9px 15px;font-family:'Bitter',serif;font-weight:600;font-size:12.5px;color:var(--ink-soft);
+    cursor:pointer;border:1.5px solid var(--line);border-bottom:none;border-radius:7px 7px 0 0;
+    margin-bottom:-2px;background:var(--card-2);transition:all .12s;appearance:none;
+  }
+  .tab:hover{color:var(--ink);}
+  .tab.active{color:var(--ink);background:var(--card);border-color:var(--ink);border-bottom:2px solid var(--card);}
+
+  /* ---- grid ---- */
+  .grid{display:grid;grid-template-columns:180px minmax(0,1.7fr) 250px;gap:14px;align-items:start;}
+  @media (max-width:1020px){.grid{grid-template-columns:1fr;}.col-map{order:-1;}}
+
+  /* ---- dials ---- */
+  .dial-card{background:var(--card);border:1.5px solid var(--ink);border-radius:12px;padding:16px;margin-bottom:12px;}
+  .dial-ring{width:112px;height:112px;border-radius:50%;margin:0 auto 10px;position:relative;}
+  .dial-hole{position:absolute;inset:15px;border-radius:50%;background:var(--card);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .dial-hole .num{font-size:25px;font-weight:600;color:var(--ink);}
+  .dial-hole .cat{font-size:9.5px;color:var(--ink-soft);text-align:center;padding:0 6px;margin-top:2px;line-height:1.3;}
+  .dial-label{text-align:center;font-family:'Bitter',serif;font-weight:600;font-size:13px;}
+  .dist-mini{display:flex;height:6px;border-radius:4px;overflow:hidden;background:var(--line);margin-top:12px;}
+  .dist-mini span{height:100%;}
+
+  /* ---- tickets ---- */
+  .ticket{position:relative;background:var(--card-2);border-top:1.5px dashed var(--line-strong);
+    border-bottom:1.5px dashed var(--line-strong);padding:9px 16px;margin-bottom:9px;
+    display:flex;justify-content:space-between;align-items:baseline;}
+  .ticket::before,.ticket::after{content:'';position:absolute;width:14px;height:14px;
+    background:var(--page);border-radius:50%;top:50%;transform:translateY(-50%);}
+  .ticket::before{left:-7px;} .ticket::after{right:-7px;}
+  .ticket .t-label{font-size:11px;color:var(--ink-soft);}
+  .ticket .t-val{font-weight:600;font-size:15px;color:var(--ink);}
+
+  /* ---- map ---- */
+  .map-plate{background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:10px;width:100%;}
+  .map-frame{position:relative;border:1px solid var(--line-strong);border-radius:2px;overflow:hidden;background:#dce6d4;width:100%;height:min(70vh,800px);}
+  #mesmaMap{width:100%;height:100%;}
+  #mesmaMap .leaflet-overlay-pane img,
+  #mesmaMap img.mesma-overlay{
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+    image-rendering:-moz-crisp-edges;
+  }
+  canvas#mapCanvas{display:none;}
+  .map-frame .leaflet-control-attribution{font-size:9px;}
+  .zoom-btns{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+  .overlay-ctrl{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-soft);flex-shrink:0;}
+  .overlay-ctrl input{width:110px;accent-color:#B23A1F;}
+  .overlay-ctrl #mesmaOpacityVal{font-family:'IBM Plex Mono',monospace;min-width:2.6em;color:var(--ink);}
+  .zoom-btns button{
+    background:var(--card);border:1.5px solid var(--ink);border-radius:6px;padding:4px 9px;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;cursor:pointer;color:var(--ink);
+  }
+  .zoom-hint{font-size:10px;color:var(--ink-faint);margin-left:4px;}
+  .scene-strip{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:2px;}
+  .scene-strip button{
+    flex:0 0 72px;border:1.5px solid var(--line-strong);border-radius:6px;padding:0;
+    background:var(--card-2);cursor:pointer;overflow:hidden;color:var(--ink);text-align:left;
+  }
+  .scene-strip button.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink);}
+  .scene-strip img{display:block;width:100%;height:44px;object-fit:contain;background:#1a1712;}
+  .scene-strip span{display:block;font-size:9px;padding:3px 5px;font-family:'IBM Plex Mono',monospace;}
+  .data-chip{display:inline-block;background:var(--card-2);border:1px solid var(--line-strong);border-radius:999px;padding:3px 10px;font-size:11px;color:var(--ink-soft);margin-top:8px;}
+  .banner-note{background:var(--card);border:1.5px dashed var(--line-strong);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--ink-soft);margin-bottom:16px;line-height:1.5;}
+  .comp-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;border:1px solid var(--ink);margin-top:10px;}
+  .comp-bar span{height:100%;}
+  .map-tooltip{position:absolute;pointer-events:none;background:var(--ink);color:var(--card);
+    border-radius:5px;padding:7px 10px;font-size:11px;line-height:1.5;display:none;white-space:nowrap;z-index:5;}
+  .map-tooltip b{color:#F0C97A;font-weight:600;}
+  .map-key{background:var(--card);border:1.5px solid var(--ink);border-radius:6px;margin-top:10px;padding:13px 15px;}
+  .map-key-title{font-family:'Bitter',serif;font-weight:600;font-size:11.5px;color:var(--ink-soft);margin-bottom:9px;}
+  .map-key-grid{display:flex;flex-wrap:wrap;gap:13px;}
+  .map-key-item{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);}
+  .key-swatch{width:13px;height:13px;border:1px solid var(--ink);flex:0 0 auto;}
+  .key-pct{color:var(--ink-faint);}
+
+  /* ---- specimen + log ---- */
+  .specimen-card{background:var(--card);border:1.5px solid var(--ink);border-radius:8px;padding:15px;margin-bottom:14px;}
+  .specimen-empty{font-size:12px;color:var(--ink-faint);line-height:1.6;}
+  .spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-bottom:12px;}
+  .spec-field{background:var(--card-2);border-radius:6px;padding:8px 10px;}
+  .spec-field .sf-label{font-size:10px;color:var(--ink-faint);margin-bottom:2px;}
+  .spec-field .sf-val{font-size:13px;font-weight:600;color:var(--ink);}
+  .spec-field .sf-cat{font-size:10px;color:var(--ink-soft);margin-top:1px;}
+  .badge-row{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+  .badge{display:inline-block;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:4px;width:fit-content;}
+  .spec-insights ul{margin:8px 0 0;padding-left:16px;}
+  .spec-insights li{font-size:11.5px;color:var(--ink-soft);margin-bottom:5px;line-height:1.5;}
+
+  .log-card{background:var(--card);border:1.5px solid var(--ink);border-radius:8px;padding:15px;}
+  .log-card h3{font-family:'Bitter',serif;font-weight:600;font-size:14px;margin:0 0 10px;}
+  .log-entry{display:flex;gap:10px;padding:8px 0;border-top:1px dashed var(--line);}
+  .log-entry:first-child{border-top:none;padding-top:0;}
+  .log-pct{font-weight:600;color:var(--ember);min-width:32px;font-size:12px;}
+  .log-text{font-size:11.5px;color:var(--ink-soft);line-height:1.5;}
+  .log-empty{font-size:11.5px;color:var(--ink-faint);}
+
+  /* ---- drawer ---- */
+  .drawer-toggle{width:100%;background:var(--card);border:1.5px solid var(--ink);border-radius:8px;
+    padding:13px 16px;font-family:'Bitter',serif;font-weight:600;font-size:13.5px;color:var(--ink);
+    cursor:pointer;margin-top:22px;text-align:left;display:flex;justify-content:space-between;align-items:center;}
+  .drawer-toggle .chev{transition:transform .2s;color:var(--ink-soft);}
+  .drawer-toggle.open .chev{transform:rotate(90deg);}
+  .drawer{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+  .drawer.open{max-height:3000px;}
+  .drawer-inner{background:var(--card-2);border:1.5px solid var(--ink);border-top:none;
+    border-radius:0 0 8px 8px;padding:18px;}
+  .drawer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px;}
+  .tblock h4{font-family:'Bitter',serif;font-weight:600;font-size:12.5px;margin:0 0 10px;
+    padding-bottom:6px;border-bottom:1px solid var(--line-strong);}
+  .slider-row{margin-bottom:11px;}
+  .slider-row:last-child{margin-bottom:0;}
+  .slider-row label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-soft);margin-bottom:5px;}
+  .slider-row label span.val{color:var(--ink);font-weight:600;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;
+    background:var(--line-strong);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:var(--ember);cursor:pointer;border:2px solid var(--card-2);}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ember);
+    cursor:pointer;border:2px solid var(--card-2);}
+  .weights-note{font-size:10.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5;}
+  .reset-link{display:inline-block;margin-top:6px;font-size:11.5px;color:var(--ink-soft);cursor:pointer;
+    text-decoration:underline;text-decoration-color:var(--line-strong);}
+  .reset-link:hover{color:var(--ink);}
+
+  /* ---- info buttons ---- */
+  .info-icon{
+    display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;
+    border-radius:50%;border:1.5px solid var(--ink);background:var(--card-2);color:var(--ink);
+    font-family:'Bitter',serif;font-weight:700;font-size:11px;cursor:pointer;flex:0 0 auto;
+    line-height:1;padding:0;transition:background .15s,transform .1s;
+  }
+  .info-icon:hover{background:var(--gold);color:var(--card);}
+  .info-icon:active{transform:scale(.92);}
+  .dial-label{display:flex;align-items:center;justify-content:center;gap:6px;}
+  .map-plate-head{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:9px;
+  }
+  .map-plate-head .map-title{font-family:'Bitter',serif;font-weight:600;font-size:12.5px;color:var(--ink-soft);margin-right:auto;}
+  .map-plate-head .zoom-hint{margin-left:0;}
+  .map-key-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
+  .map-key-title-row .map-key-title{margin-bottom:0;}
+
+  /* ---- info modal ---- */
+  .modal-overlay{position:fixed;inset:0;background:rgba(34,31,23,.62);display:none;
+    align-items:center;justify-content:center;z-index:20000;padding:24px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--card);border:2px solid var(--ink);border-radius:12px;
+    max-width:680px;width:min(680px,100%);max-height:86vh;display:flex;flex-direction:column;
+    box-shadow:0 18px 40px rgba(34,31,23,.35);z-index:20001;position:relative;}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;
+    padding:16px 20px 12px;border-bottom:2px solid var(--ink);}
+  .modal-header h2{font-family:'Bitter',serif;font-weight:700;font-size:19px;margin:0;}
+  .modal-close{background:none;border:none;font-size:24px;line-height:1;color:var(--ink-soft);
+    cursor:pointer;padding:0 4px;}
+  .modal-close:hover{color:var(--ember);}
+  .modal-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:10px 16px 0;border-bottom:1.5px solid var(--line);}
+  .modal-tab{padding:7px 12px;font-family:'Bitter',serif;font-weight:600;font-size:11.5px;
+    color:var(--ink-soft);cursor:pointer;border:1.5px solid var(--line);border-bottom:none;
+    border-radius:6px 6px 0 0;margin-bottom:-1.5px;background:var(--card-2);transition:all .12s;}
+  .modal-tab:hover{color:var(--ink);}
+  .modal-tab.active{color:var(--ink);background:var(--card);border-color:var(--ink);border-bottom:1.5px solid var(--card);}
+  .modal-body{padding:18px 22px 22px;overflow-y:auto;font-size:13px;line-height:1.6;color:var(--ink-soft);}
+  .modal-body h3{font-family:'Bitter',serif;font-weight:600;font-size:14.5px;color:var(--ink);
+    margin:18px 0 6px;}
+  .modal-body h3:first-child{margin-top:0;}
+  .modal-body p{margin:0 0 10px;}
+  .info-table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:12px;}
+  .info-table th,.info-table td{border:1px solid var(--line-strong);padding:6px 9px;text-align:left;}
+  .info-table th{background:var(--card-2);font-family:'Bitter',serif;font-weight:600;color:var(--ink);}
+  .info-table td{color:var(--ink-soft);}
+  .formula-box{background:var(--card-2);border:1.5px dashed var(--line-strong);border-radius:6px;
+    padding:12px 14px;margin:10px 0 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);}
+  .formula-box div{padding:2px 0;}
+  .info-quote{border-left:3px solid var(--ember);padding:9px 13px;margin:6px 0 16px;font-style:italic;
+    color:var(--ink-soft);background:var(--card-2);border-radius:0 6px 6px 0;font-size:12.5px;}
+  .info-note{font-size:11.5px;color:var(--ink-faint);margin-top:-4px;}
+</style>
+</head>
+<body>
+<div id="jsRequired" style="background:#221F17;color:#F7F1DD;padding:12px 18px;font-family:sans-serif;font-size:14px;line-height:1.5;">
+  Jupyter’s HTML preview cannot run this map. In the notebook, run the <b>Open on CyVerse</b> cell and click the link it prints.
+</div>
+<div class="atlas">
+
+  <div class="hero">
+    <div>
+      <h1>Postfire recovery atlas</h1>
+      <p id="heroBlurb">MESMA endmember fractions for a Sentinel-2 scene. Switch the scene menu to analyse another tile.</p>
+      <span class="data-chip mono" id="heroChip">shade-normalized fractions</span>
+    </div>
+    <div class="hero-actions">
+      <a class="stamp-btn" id="backToPicker" href="../index.html">← Tile map</a>
+      <label class="tile-picker" id="tilePicker">
+        <span>Scene to analyse</span>
+        <select id="tileSelect" class="tile-select"></select>
+      </label>
+      <button class="stamp-btn" id="infoBtnMain">ⓘ About this data</button>
+    </div>
+  </div>
+
+  <div class="banner-note">This file is a MESMA <b>fractions</b> cube only. Time-since-fire is not present, so recovery and fuel scores use vegetation, soil, and dead-fuel fractions (time weight defaults to 0). Shade-normalized PV / NPV / soil / rock / water are shown so cover sums independently of illumination.</div>
+
+  <p class="tabstrip-label">Map layers</p>
+  <nav class="tabstrip" id="tabstrip"></nav>
+  <p class="tabstrip-label">Scores</p>
+  <nav class="tabstrip tabstrip-scores" id="scoreTabs"></nav>
+  <p class="tabstrip-label">Time since fire</p>
+  <nav class="tabstrip tabstrip-tsf">
+    <button type="button" class="tab" id="tsfTabBtn">Southern California burn map</button>
+  </nav>
+  <div id="tsfPanel" class="tsf-panel">
+    <p class="tsf-note">
+      MODIS MCD64A1 days since last burn on an Esri street basemap. Pan and zoom; use the layer control for topo or satellite.
+      <a id="tsfOpenNew" href="southern_california_burn_map.png" target="_blank" rel="noopener">Open PNG in a new tab</a>
+    </p>
+    <div class="tsf-stage">
+      <div id="tsfMap"></div>
+      <img id="tsfImg" alt="Days since last burn">
+      <div class="tsf-legend">
+        <div class="tsf-legend-title">Days since last burn</div>
+        <div class="tsf-swatch"><i style="background:#ffff00"></i>1 – 365 days (0 – 1 year)</div>
+        <div class="tsf-swatch"><i style="background:#ffd000"></i>366 – 730 days (1 – 2 years)</div>
+        <div class="tsf-swatch"><i style="background:#ff9f00"></i>731 – 1,825 days (2 – 5 years)</div>
+        <div class="tsf-swatch"><i style="background:#ff6b00"></i>1,826 – 3,650 days (5 – 10 years)</div>
+        <div class="tsf-swatch"><i style="background:#f03b20"></i>3,651 – 7,300 days (10 – 20 years)</div>
+        <div class="tsf-swatch"><i style="background:#b10026"></i>&gt; 7,300 days (&gt; 20 years)</div>
+        <hr>
+        <div><b>Reference date:</b> 2026-07-28</div>
+        <div><b>Data source:</b> MODIS MCD64A1</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="col-left">
+      <div class="dial-card">
+        <div class="dial-ring" id="dialRecovery"><div class="dial-hole"><span class="num mono" id="dialRecoveryNum">-</span><span class="cat" id="dialRecoveryCat">-</span></div></div>
+        <div class="dial-label">Recovery score <button class="info-icon" data-tab="recovery" title="What is this?">i</button></div>
+        <div class="dist-mini" id="distRecovery"></div>
+      </div>
+      <div class="dial-card">
+        <div class="dial-ring" id="dialFuel"><div class="dial-hole"><span class="num mono" id="dialFuelNum">-</span><span class="cat" id="dialFuelCat">-</span></div></div>
+        <div class="dial-label">Fuel risk score <button class="info-icon" data-tab="fuel" title="What is this?">i</button></div>
+        <div class="dist-mini" id="distFuel"></div>
+      </div>
+      <div id="tickets"></div>
+    </div>
+
+    <div class="col-map">
+      <div class="map-plate">
+        <div class="map-plate-head">
+          <span class="map-title">Interactive map</span>
+          <div class="zoom-btns">
+            <button type="button" id="zoomOutBtn" title="Zoom out">−</button>
+            <button type="button" id="zoomFitBtn" title="Fit whole image">Fit</button>
+            <button type="button" id="zoomInBtn" title="Zoom in">+</button>
+          </div>
+          <label class="overlay-ctrl" title="MESMA transparency">
+            overlay
+            <input id="mesmaOpacity" type="range" min="0" max="100" value="55">
+            <span id="mesmaOpacityVal">55%</span>
+          </label>
+          <button class="info-icon" data-tab="guide" title="How to read this dashboard">i</button>
+        </div>
+        <div class="map-frame">
+          <div id="mesmaMap"></div>
+          <canvas id="mapCanvas" width="512" height="512"></canvas>
+          <div class="map-tooltip" id="mapTooltip"></div>
+        </div>
+        <div class="scene-strip" id="sceneStrip"></div>
+      </div>
+      <div class="map-key">
+        <div class="map-key-title-row">
+          <div class="map-key-title">Map key</div>
+          <button class="info-icon" data-tab="thresholds" title="What do these categories mean?">i</button>
+        </div>
+        <div class="map-key-grid" id="mapKeyGrid"></div>
+      </div>
+    </div>
+
+    <div class="col-right">
+      <div class="specimen-card" id="specimenCard"></div>
+      <div class="log-card">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">Field log
+          <button class="info-icon" data-tab="sources" title="Where does this data come from?">i</button>
+        </h3>
+        <div id="fieldLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="drawer-toggle" id="drawerToggle">Field notes — adjust thresholds and weights <span class="chev">&#8250;</span></button>
+  <div class="drawer" id="drawer">
+    <div class="drawer-inner">
+      <div class="drawer-grid" id="thresholdGroups"></div>
+      <span class="reset-link" id="resetLink">Reset to default values</span>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="infoModalOverlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modalTitle">About this data</h2>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-tabs" id="modalTabs">
+        <button class="modal-tab" data-tab="guide">How to read this</button>
+        <button class="modal-tab" data-tab="sources">Data sources</button>
+        <button class="modal-tab" data-tab="thresholds">Thresholds</button>
+        <button class="modal-tab" data-tab="recovery">Recovery score</button>
+        <button class="modal-tab" data-tab="fuel">Fuel risk score</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="mesma_grid.js"></script>
+<script src="atlas_tiles.js" onerror="window.ATLAS_TILES=[]"></script>
+<script>
+(function(){
+
+const needJs=document.getElementById('jsRequired');
+if(needJs) needJs.remove();
+
+if(!window.MESMA_GRID){
+  document.body.insertAdjacentHTML('afterbegin',
+    '<p style="padding:20px;font-family:sans-serif">Could not load the MESMA grid. On CyVerse run the Open-on-CyVerse notebook cell instead of this preview.</p>');
+  return;
+}
+
+const G = window.MESMA_GRID;
+const COLS = G.cols, ROWS = G.rows;
+const HAS_TSF = !!(G.bands && G.bands.tsf);
+
+const TSF_LABELS = ['Recently burned','Early recovery','Intermediate recovery','Mature vegetation','Long unburned'];
+const TSF_COLORS = ['#B23A1F','#C08A3E','#9B9450','#6E8E56','#3F5F3F'];
+
+const PV_LABELS = ['Very low green vegetation','Low','Moderate','High','Very high'];
+const PV_COLORS = ['#8C6C45','#A9895A','#B7AE70','#7E9C5E','#3E6B3E'];
+
+const NPV_LABELS = ['Very low dead fuel','Low','Moderate','High','Very high'];
+const NPV_COLORS = ['#517266','#82936A','#BEA25A','#C57E44','#B23A1F'];
+
+const SOIL_LABELS = ['Little bare ground','Moderate bare soil','High bare soil exposure'];
+const SOIL_COLORS = ['#6E7C5A','#B08A55','#8C4E30'];
+
+const WATER_LABELS = ['No water','Mixed','Water dominated'];
+const WATER_COLORS = ['#8C826A','#5A93A6','#2C6E82'];
+
+const ROCK_LABELS = ['Low','Moderate','Rock dominated'];
+const ROCK_COLORS = ['#8C826A','#9C9174','#5F5A48'];
+
+const SHADE_LABELS = ['Low shade','Moderate shade','High shade'];
+const SHADE_COLORS = ['#C4B48A','#8A7B5C','#3F3A32'];
+
+const DOM_KEYS = ['pv','npv','soil','rock','water'];
+const DOM_LABELS = {pv:'Green vegetation', npv:'Dead fuel', soil:'Bare soil', rock:'Rock', water:'Water'};
+const DOM_COLORS = {pv:'#3E6B3E', npv:'#C08A3E', soil:'#8C4E30', rock:'#5F5A48', water:'#2C6E82'};
+
+const RECOVERY_LABELS = ['Very poor recovery','Poor recovery','Moderate recovery','Healthy recovery'];
+const RECOVERY_COLORS = ['#B23A1F','#C08A3E','#9B9450','#3F5F3F'];
+
+const FUEL_LABELS = ['Low','Moderate','High','Very high'];
+const FUEL_COLORS = ['#3F5F3F','#C08A3E','#B23A1F','#7A2313'];
+
+const LAYER_MODES = [
+  {key:'rgb', label:'Original image'},
+  {key:'pv', label:'Vegetation (PV)'},
+  {key:'npv', label:'Dead fuel (NPV)'},
+  {key:'soil', label:'Soil fraction'},
+  {key:'shade', label:'Shade fraction'},
+  {key:'water', label:'Water fraction'},
+  {key:'rock', label:'Rock fraction'},
+  {key:'dom', label:'Dominant cover'},
+];
+const SCORE_MODES = [
+  {key:'recovery', label:'Recovery score'},
+  {key:'fuel', label:'Fuel risk score'},
+];
+const VIEW_MODES = [...LAYER_MODES, ...SCORE_MODES];
+
+const DEFAULT_THRESHOLDS = {
+  tsfYears:[1,5,10,20], pv:[0.20,0.40,0.60,0.80], npv:[0.20,0.40,0.60,0.80],
+  soil:[0.20,0.50], water:[0.20,0.50], rock:[0.20,0.50], shade:[0.15,0.30],
+};
+const DEFAULT_WEIGHTS = {
+  recovery:{pv:HAS_TSF?40:50,time:HAS_TSF?30:0,soilInv:HAS_TSF?20:30,npvInv:HAS_TSF?10:20},
+  fuel:{npv:HAS_TSF?50:70,time:HAS_TSF?30:0,pvInv:HAS_TSF?20:30},
+};
+
+const RULES = [
+  {test:(p)=> p.pv<0.30 && p.soil>0.50, text:'Limited green vegetation with extensive bare soil.'},
+  {test:(p)=> p.pv>0.60, text:'Photosynthetic vegetation is the dominant recovered cover.'},
+  {test:(p)=> p.npv>0.40, text:'Elevated dead vegetation may indicate fuel accumulation.'},
+  {test:(p)=> p.soil>0.50, text:'Large areas of exposed soil may increase erosion risk.'},
+  {test:(p)=> p.pv>0.70 && p.npv<0.30, text:'Healthy vegetation with relatively low dry fuel.'},
+  {test:(p)=> p.pv<0.20 && p.soil>0.60, text:'Landscape is largely unvegetated and may require restoration.'},
+  {test:(p)=> p.water>0.30, text:'Water is a substantial fraction of the pixel.'},
+  {test:(p)=> p.shade>0.30, text:'High shade fraction — steep terrain or dark surfaces.'},
+];
+
+/* ============== STATE ============== */
+let state = {mode:'rgb', thresholds:JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS)),
+  weights:JSON.parse(JSON.stringify(DEFAULT_WEIGHTS)), selected:null};
+let data = [];
+function validPixels(){ return data.filter(p=>p.valid); }
+
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+/* ============== LOAD REAL MESMA GRID ============== */
+function unpackGrid(g){
+  const scale=g.scale||1000, out=[];
+  for(let row=0;row<g.rows;row++){
+    for(let col=0;col<g.cols;col++){
+      const i=row*g.cols+col;
+      const rawPv=g.bands.pv[i];
+      if(rawPv<0){
+        out.push({row,col,valid:false,pv:0,npv:0,soil:0,water:0,rock:0,shade:0,none:0,tsf:null});
+        continue;
+      }
+      out.push({
+        row,col,valid:true,
+        tsf:(g.bands.tsf && g.bands.tsf[i]>=0) ? g.bands.tsf[i] : null,
+        pv:g.bands.pv[i]/scale,
+        npv:g.bands.npv[i]/scale,
+        soil:g.bands.soil[i]/scale,
+        water:g.bands.water[i]/scale,
+        rock:g.bands.rock[i]/scale,
+        shade:g.bands.shade[i]/scale,
+        none:g.bands.none[i]/scale,
+      });
+    }
+  }
+  return out;
+}
+function cellLonLat(p){
+  const u=(p.col+0.5)/COLS, v=(p.row+0.5)/ROWS;
+  return {
+    lon: G.lonlat.west + u*(G.lonlat.east-G.lonlat.west),
+    lat: G.lonlat.north - v*(G.lonlat.north-G.lonlat.south),
+  };
+}
+function dominantKey(p){
+  let best='soil', v=-1;
+  DOM_KEYS.forEach(k=>{ if(p[k]>v){ v=p[k]; best=k; } });
+  return best;
+}
+
+/* ============== CLASSIFICATION ============== */
+function classifyBreaks(value,breaks,labels,colors){
+  let idx=breaks.findIndex(b=>value<=b); if(idx===-1) idx=labels.length-1;
+  return {idx,label:labels[idx],color:colors[idx],value};
+}
+function classifyPixel(mode,p){
+  if(!p.valid) return {idx:-1,label:'No MESMA model',color:'#E3D8B2',value:null};
+  switch(mode){
+    case 'rgb': return {idx:0,label:'MESMA fractions',color:'#3E6B3E',value:null};
+    case 'tsf': return classifyBreaks(p.tsf??99999,state.thresholds.tsfYears.map(y=>y*365),TSF_LABELS,TSF_COLORS);
+    case 'dom': { const k=dominantKey(p); return {idx:DOM_KEYS.indexOf(k),label:DOM_LABELS[k],color:DOM_COLORS[k],value:p[k]}; }
+    case 'pv': return classifyBreaks(p.pv,state.thresholds.pv,PV_LABELS,PV_COLORS);
+    case 'npv': return classifyBreaks(p.npv,state.thresholds.npv,NPV_LABELS,NPV_COLORS);
+    case 'soil': return classifyBreaks(p.soil,state.thresholds.soil,SOIL_LABELS,SOIL_COLORS);
+    case 'water': return classifyBreaks(p.water,state.thresholds.water,WATER_LABELS,WATER_COLORS);
+    case 'rock': return classifyBreaks(p.rock,state.thresholds.rock,ROCK_LABELS,ROCK_COLORS);
+    case 'shade': return classifyBreaks(p.shade,state.thresholds.shade,SHADE_LABELS,SHADE_COLORS);
+    case 'recovery': { const s=recoveryScore(p); const idx=s<25?0:s<50?1:s<75?2:3;
+      return {idx,label:RECOVERY_LABELS[idx],color:RECOVERY_COLORS[idx],value:s}; }
+    case 'fuel': { const s=fuelScore(p); const idx=s<25?0:s<50?1:s<75?2:3;
+      return {idx,label:FUEL_LABELS[idx],color:FUEL_COLORS[idx],value:s}; }
+  }
+}
+function normTime(p){ if(p.tsf==null) return 0; const capDays=state.thresholds.tsfYears[3]*365; return Math.min(p.tsf/capDays,1); }
+function recoveryScore(p){
+  const w=state.weights.recovery, tot=(w.pv+w.time+w.soilInv+w.npvInv)||1, nT=normTime(p);
+  const raw=(w.pv*p.pv+w.time*nT+w.soilInv*(1-p.soil)+w.npvInv*(1-p.npv))/tot;
+  return Math.round(clamp(raw,0,1)*100);
+}
+function fuelScore(p){
+  const w=state.weights.fuel, tot=(w.npv+w.time+w.pvInv)||1, nT=normTime(p);
+  const raw=(w.npv*p.npv+w.time*nT+w.pvInv*(1-p.pv))/tot;
+  return Math.round(clamp(raw,0,1)*100);
+}
+function scoreCategory(score,labels){ const idx=score<25?0:score<50?1:score<75?2:3; return {idx,label:labels[idx]}; }
+
+/* ============== RENDER: TABSTRIP ============== */
+function fillTabstrip(el, modes){
+  if(!el) return;
+  el.innerHTML='';
+  modes.forEach(m=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='tab'+(state.mode===m.key?' active':'');
+    b.textContent=m.label;
+    b.onclick=()=>{ hideTsfPage(); state.mode=m.key; layerCache=null; layerCacheMode=null; renderTabs(); renderMap(); renderMapKey(); };
+    el.appendChild(b);
+  });
+}
+const TSF_BOUNDS=[[32.50,-122.80],[37.10,-114.75]];
+let tsfLeaflet=null;
+function tsfCandidates(name){
+  return [
+    new URL(name, location.href).href,
+    new URL('../'+name, location.href).href,
+  ];
+}
+function firstExistingPng(urls, ok, fail){
+  let i=0;
+  const probe=new Image();
+  probe.onload=()=>ok(urls[i]);
+  probe.onerror=()=>{ i+=1; if(i<urls.length) probe.src=urls[i]; else if(fail) fail(); };
+  probe.src=urls[0];
+}
+function initTsfLeaflet(pngUrl){
+  if(typeof L==='undefined' || !document.getElementById('tsfMap')) return false;
+  if(tsfLeaflet){
+    tsfLeaflet.invalidateSize();
+    return true;
+  }
+  tsfLeaflet=L.map('tsfMap',{zoomControl:true}).setView([34.80,-118.775],7);
+  const streets=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Tiles &copy; Esri'
+  });
+  const topo=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Tiles &copy; Esri'
+  });
+  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Tiles &copy; Esri'
+  });
+  streets.addTo(tsfLeaflet);
+  const burn=L.imageOverlay(pngUrl, TSF_BOUNDS,{opacity:0.72, pane:'overlayPane'});
+  burn.addTo(tsfLeaflet);
+  L.control.layers(
+    {'Streets':streets,'Topo':topo,'Satellite':sat},
+    {'Days since last burn':burn},
+    {collapsed:false}
+  ).addTo(tsfLeaflet);
+  tsfLeaflet.fitBounds(TSF_BOUNDS,{padding:[12,12]});
+  setTimeout(()=>tsfLeaflet.invalidateSize(),80);
+  return true;
+}
+function showTsfPage(){
+  const panel=document.getElementById('tsfPanel');
+  const grid=document.querySelector('.grid');
+  const btn=document.getElementById('tsfTabBtn');
+  if(panel) panel.classList.add('show');
+  if(grid) grid.style.display='none';
+  if(btn) btn.classList.add('active');
+  document.querySelectorAll('#tabstrip .tab, #scoreTabs .tab').forEach(b=>b.classList.remove('active'));
+  const img=document.getElementById('tsfImg');
+  const link=document.getElementById('tsfOpenNew');
+  const pngs=tsfCandidates('southern_california_burn_map.png');
+  firstExistingPng(pngs, (pngUrl)=>{
+    if(link) link.href=pngUrl;
+    if(!initTsfLeaflet(pngUrl) && img){
+      img.style.display='block';
+      img.src=pngUrl;
+    }
+  }, ()=>{
+    if(img){ img.style.display='block'; img.alt='Burn PNG not found in atlas/'; }
+  });
+}
+function hideTsfPage(){
+  const panel=document.getElementById('tsfPanel');
+  const grid=document.querySelector('.grid');
+  const btn=document.getElementById('tsfTabBtn');
+  if(panel) panel.classList.remove('show');
+  if(grid) grid.style.display='';
+  if(btn) btn.classList.remove('active');
+  if(mesmaMap) setTimeout(()=>mesmaMap.invalidateSize(),80);
+}
+function renderTabs(){
+  fillTabstrip(document.getElementById('tabstrip'), LAYER_MODES);
+  fillTabstrip(document.getElementById('scoreTabs'), SCORE_MODES);
+}
+
+/* ============== RENDER: DIALS + TICKETS ============== */
+function renderDials(){
+  const vp=validPixels();
+  const recScores=vp.map(recoveryScore), fuelScores=vp.map(fuelScore);
+  const n=vp.length||1;
+  const avgRec=Math.round(recScores.reduce((a,b)=>a+b,0)/n);
+  const avgFuel=Math.round(fuelScores.reduce((a,b)=>a+b,0)/n);
+  const recCat=scoreCategory(avgRec,RECOVERY_LABELS), fuelCat=scoreCategory(avgFuel,FUEL_LABELS);
+
+  const ringR=document.getElementById('dialRecovery');
+  ringR.style.background=`conic-gradient(${RECOVERY_COLORS[recCat.idx]} ${avgRec*3.6}deg, var(--line) 0deg)`;
+  document.getElementById('dialRecoveryNum').textContent=avgRec;
+  document.getElementById('dialRecoveryCat').textContent=recCat.label;
+
+  const ringF=document.getElementById('dialFuel');
+  ringF.style.background=`conic-gradient(${FUEL_COLORS[fuelCat.idx]} ${avgFuel*3.6}deg, var(--line) 0deg)`;
+  document.getElementById('dialFuelNum').textContent=avgFuel;
+  document.getElementById('dialFuelCat').textContent=fuelCat.label;
+
+  document.getElementById('distRecovery').innerHTML=distMini(recScores,RECOVERY_COLORS);
+  document.getElementById('distFuel').innerHTML=distMini(fuelScores,FUEL_COLORS);
+}
+function distMini(scores,colors){
+  const counts=[0,0,0,0];
+  scores.forEach(s=>{ counts[s<25?0:s<50?1:s<75?2:3]++; });
+  const n=scores.length||1;
+  return counts.map((c,i)=>`<span style="width:${c/n*100}%;background:${colors[i]}"></span>`).join('');
+}
+function mean(arr){ return arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+function renderTickets(){
+  const el=document.getElementById('tickets');
+  const vp=validPixels();
+  const n=vp.length||1;
+  const pctSoil=Math.round(vp.filter(p=>p.soil>0.50).length/n*100);
+  const pctHighFuel=Math.round(vp.filter(p=>fuelScore(p)>=50).length/n*100);
+  const km2=(n * G.cellMetersX * G.cellMetersY / 1e6).toFixed(1);
+  el.innerHTML=`
+    <div class="ticket"><span class="t-label">Modeled cells</span><span class="t-val mono">${n.toLocaleString()}</span></div>
+    <div class="ticket"><span class="t-label">Area represented</span><span class="t-val mono">${km2} km²</span></div>
+    <div class="ticket"><span class="t-label">Mean PV</span><span class="t-val mono">${mean(vp.map(p=>p.pv)).toFixed(2)}</span></div>
+    <div class="ticket"><span class="t-label">High bare soil</span><span class="t-val mono">${pctSoil}%</span></div>
+    <div class="ticket"><span class="t-label">High+ fuel risk</span><span class="t-val mono">${pctHighFuel}%</span></div>
+  `;
+}
+
+/* ============== RENDER: MAP (Leaflet basemap + MESMA overlay) ============== */
+const canvas=document.getElementById('mapCanvas'), ctx=canvas.getContext('2d');
+const rgbImg=new Image();
+rgbImg.src='mesma_original.png';
+const LL=G.lonlat||null;
+const MESMA_BOUNDS=LL?[[LL.south,LL.west],[LL.north,LL.east]]:null;
+let mesmaMap=null, overlay=null, selectRect=null;
+let layerCache=null, layerCacheMode=null;
+const tooltip=document.getElementById('mapTooltip');
+
+function contentSize(){
+  if(rgbImg.naturalWidth) return {w:rgbImg.naturalWidth, h:rgbImg.naturalHeight};
+  const max=1024, s=Math.min(max/Math.max(COLS,1), max/Math.max(ROWS,1));
+  return {w:Math.max(1,Math.round(COLS*s)), h:Math.max(1,Math.round(ROWS*s))};
+}
+function invalidateLayer(){ layerCache=null; layerCacheMode=null; }
+function punchBlack(o,w,h){
+  const imgd=o.getImageData(0,0,w,h);
+  const d=imgd.data;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i]+d[i+1]+d[i+2]<18) d[i+3]=0;
+  }
+  o.putImageData(imgd,0,0);
+}
+function getLayerCanvas(){
+  if(layerCache && layerCacheMode===state.mode) return layerCache;
+  const {w,h}=contentSize();
+  const off=document.createElement('canvas');
+  off.width=w; off.height=h;
+  const o=off.getContext('2d');
+  o.imageSmoothingEnabled=false;
+  o.clearRect(0,0,w,h);
+  if(state.mode==='rgb' && rgbImg.complete && rgbImg.naturalWidth){
+    o.drawImage(rgbImg,0,0,w,h);
+    punchBlack(o,w,h);
+  } else {
+    const cw=w/COLS, ch=h/ROWS;
+    for(let i=0;i<data.length;i++){
+      const p=data[i];
+      if(!p.valid) continue;
+      o.fillStyle=classifyPixel(state.mode,p).color;
+      o.fillRect(p.col*cw, p.row*ch, Math.ceil(cw), Math.ceil(ch));
+    }
+  }
+  layerCache=off; layerCacheMode=state.mode;
+  return off;
+}
+function cellFromLatLng(latlng){
+  if(!LL) return null;
+  const u=(latlng.lng-LL.west)/(LL.east-LL.west);
+  const v=(LL.north-latlng.lat)/(LL.north-LL.south);
+  const col=Math.floor(u*COLS);
+  const row=Math.floor(v*ROWS);
+  if(col<0||col>=COLS||row<0||row>=ROWS) return null;
+  return row*COLS+col;
+}
+function cellGeoBounds(p){
+  const west=LL.west+p.col/COLS*(LL.east-LL.west);
+  const east=LL.west+(p.col+1)/COLS*(LL.east-LL.west);
+  const north=LL.north-p.row/ROWS*(LL.north-LL.south);
+  const south=LL.north-(p.row+1)/ROWS*(LL.north-LL.south);
+  return [[south,west],[north,east]];
+}
+function updateSelectRect(){
+  if(!mesmaMap||!LL) return;
+  if(selectRect){ mesmaMap.removeLayer(selectRect); selectRect=null; }
+  if(state.selected===null) return;
+  const p=data[state.selected];
+  selectRect=L.rectangle(cellGeoBounds(p),{color:'#F7F1DD', weight:2, fill:false, interactive:false}).addTo(mesmaMap);
+}
+function sharpenOverlay(){
+  const img=overlay && overlay.getElement && overlay.getElement();
+  if(img){
+    img.classList.add('mesma-overlay');
+    img.style.imageRendering='pixelated';
+  }
+}
+function renderMap(){
+  const layer=getLayerCanvas();
+  if(mesmaMap && overlay){
+    overlay.setUrl(layer.toDataURL('image/png'));
+    overlay.once('load', sharpenOverlay);
+    sharpenOverlay();
+    updateSelectRect();
+    mesmaMap.invalidateSize();
+    return;
+  }
+}
+function placeTooltip(evt, html){
+  const frame=document.querySelector('.map-frame');
+  const rect=frame.getBoundingClientRect();
+  tooltip.style.display='block';
+  tooltip.style.left=(evt.originalEvent.clientX-rect.left+14)+'px';
+  tooltip.style.top=(evt.originalEvent.clientY-rect.top-10)+'px';
+  tooltip.innerHTML=html;
+}
+function initMesmaMap(){
+  const el=document.getElementById('mesmaMap');
+  if(typeof L==='undefined' || !el || !MESMA_BOUNDS) return;
+  mesmaMap=L.map(el,{zoomControl:false, attributionControl:true});
+  const streets=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Tiles &copy; Esri'
+  });
+  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Tiles &copy; Esri'
+  });
+  streets.addTo(mesmaMap);
+  overlay=L.imageOverlay(getLayerCanvas().toDataURL('image/png'), MESMA_BOUNDS,{
+    opacity:0.55, interactive:false, pane:'overlayPane', className:'mesma-overlay'
+  }).addTo(mesmaMap);
+  L.control.layers({'Streets':streets,'Satellite':sat}, {'MESMA':overlay},{collapsed:true}).addTo(mesmaMap);
+  mesmaMap.fitBounds(MESMA_BOUNDS,{padding:[10,10]});
+  mesmaMap.on('mousemove', evt=>{
+    const idx=cellFromLatLng(evt.latlng);
+    if(idx===null){ tooltip.style.display='none'; return; }
+    const p=data[idx], c=classifyPixel(state.mode,p);
+    placeTooltip(evt, `<b>${c.label}</b><br>${p.valid? `PV ${p.pv.toFixed(2)} · NPV ${p.npv.toFixed(2)} · soil ${p.soil.toFixed(2)}` : 'Unmodeled — streets show through'}`);
+  });
+  mesmaMap.on('mouseout', ()=>{ tooltip.style.display='none'; });
+  mesmaMap.on('click', evt=>{
+    const idx=cellFromLatLng(evt.latlng);
+    if(idx===null) return;
+    if(!data[idx].valid){ state.selected=null; renderMap(); renderSpecimen(); return; }
+    state.selected=idx;
+    renderMap();
+    renderSpecimen();
+  });
+  const op=document.getElementById('mesmaOpacity');
+  const opVal=document.getElementById('mesmaOpacityVal');
+  function applyOpacity(){
+    const v=Number(op && op.value ? op.value : 55);
+    if(opVal) opVal.textContent=v+'%';
+    if(!overlay || !mesmaMap) return;
+    if(v<=0){
+      overlay.setOpacity(0);
+      if(mesmaMap.hasLayer(overlay)) mesmaMap.removeLayer(overlay);
+    } else {
+      if(!mesmaMap.hasLayer(overlay)) overlay.addTo(mesmaMap);
+      overlay.setOpacity(v/100);
+    }
+  }
+  if(op) op.addEventListener('input', applyOpacity);
+  applyOpacity();
+}
+rgbImg.onload=()=>{ invalidateLayer(); if(data.length) renderMap(); };
+
+document.getElementById('zoomInBtn').onclick=()=>{ if(mesmaMap) mesmaMap.zoomIn(); };
+document.getElementById('zoomOutBtn').onclick=()=>{ if(mesmaMap) mesmaMap.zoomOut(); };
+document.getElementById('zoomFitBtn').onclick=()=>{ if(mesmaMap && MESMA_BOUNDS) mesmaMap.fitBounds(MESMA_BOUNDS,{padding:[10,10]}); };
+window.addEventListener('resize', ()=>{ if(mesmaMap) mesmaMap.invalidateSize(); });
+
+function renderSceneStrip(){
+  const el=document.getElementById('sceneStrip');
+  const tiles=window.ATLAS_TILES;
+  if(!el || !tiles || !tiles.length){ if(el) el.style.display='none'; return; }
+  const current=tiles.find(t => (G.source||'').startsWith(t.id)) || tiles.find(t => t.label===G.tile);
+  el.innerHTML=tiles.map(t=>{
+    const on=current && t.id===current.id ? 'on' : '';
+    const src=`../${t.id}/mesma_original.png`;
+    return `<button type="button" class="${on}" data-id="${t.id}" title="${t.label}">
+      <img src="${src}" alt="${t.label}"><span>${t.label}</span></button>`;
+  }).join('');
+  el.querySelectorAll('button').forEach(btn=>{
+    btn.onclick=()=>{ location.href=`../${btn.dataset.id}/postfire_landscape_atlas1.html`; };
+  });
+}
+
+/* ============== RENDER: MAP KEY ============== */
+function legendConfigFor(mode){
+  switch(mode){
+    case 'rgb': return {labels:['Soil (red)','Vegetation / PV (green)','Dead fuel / NPV (blue)'],colors:['#C43B2B','#2F9E3A','#3A5BD0']};
+    case 'tsf': return {labels:TSF_LABELS,colors:TSF_COLORS};
+    case 'dom': return {labels:DOM_KEYS.map(k=>DOM_LABELS[k]),colors:DOM_KEYS.map(k=>DOM_COLORS[k])};
+    case 'pv': return {labels:PV_LABELS,colors:PV_COLORS};
+    case 'npv': return {labels:NPV_LABELS,colors:NPV_COLORS};
+    case 'soil': return {labels:SOIL_LABELS,colors:SOIL_COLORS};
+    case 'water': return {labels:WATER_LABELS,colors:WATER_COLORS};
+    case 'rock': return {labels:ROCK_LABELS,colors:ROCK_COLORS};
+    case 'shade': return {labels:SHADE_LABELS,colors:SHADE_COLORS};
+    case 'recovery': return {labels:RECOVERY_LABELS,colors:RECOVERY_COLORS};
+    case 'fuel': return {labels:FUEL_LABELS,colors:FUEL_COLORS};
+  }
+}
+function renderMapKey(){
+  const cfg=legendConfigFor(state.mode);
+  const vp=validPixels();
+  const n=vp.length||1;
+  const counts=new Array(cfg.labels.length).fill(0);
+  vp.forEach(p=>{ const idx=classifyPixel(state.mode,p).idx; if(idx>=0 && idx<counts.length) counts[idx]++; });
+  const el=document.getElementById('mapKeyGrid');
+  if(state.mode==='rgb'){
+    el.innerHTML=cfg.labels.map((lab,i)=>{
+      return `<div class="map-key-item"><span class="key-swatch" style="background:${cfg.colors[i]}"></span>${lab}</div>`;
+    }).join('') + `<div class="map-key-item" style="width:100%">Native 10 m MESMA RGB from the fractions cube (R=soil, G=PV, B=NPV).</div>`;
+    return;
+  }
+  el.innerHTML=cfg.labels.map((lab,i)=>{
+    const pct=Math.round(counts[i]/n*100);
+    return `<div class="map-key-item"><span class="key-swatch" style="background:${cfg.colors[i]}"></span>${lab} <span class="key-pct mono">${pct}%</span></div>`;
+  }).join('');
+}
+
+/* ============== RENDER: FIELD LOG ============== */
+function renderFieldLog(){
+  const el=document.getElementById('fieldLog');
+  const vp=validPixels();
+  const n=vp.length||1;
+  const results=RULES.map(r=>{
+    let count=0; vp.forEach(p=>{ if(r.test(p)) count++; });
+    return {pct:Math.round(count/n*100), text:r.text};
+  }).filter(r=>r.pct>=1).sort((a,b)=>b.pct-a.pct);
+  if(results.length===0){ el.innerHTML='<p class="log-empty">No rule conditions are currently met at scale.</p>'; return; }
+  el.innerHTML=results.map(r=>`<div class="log-entry"><span class="log-pct mono">${r.pct}%</span><span class="log-text">${r.text}</span></div>`).join('');
+}
+
+/* ============== RENDER: SPECIMEN CARD ============== */
+function renderSpecimen(){
+  const el=document.getElementById('specimenCard');
+  if(state.selected===null){
+    el.innerHTML='<p class="specimen-empty">Click any cell on the map to inspect its metrics, category and matching field-log rules.</p>';
+    return;
+  }
+  const p=data[state.selected];
+  if(!p.valid){
+    el.innerHTML='<p class="specimen-empty">This cell was not modeled by MESMA (nodata / outside the run footprint).</p>';
+    return;
+  }
+  const ll=cellLonLat(p);
+  const cPv=classifyPixel('pv',p), cNpv=classifyPixel('npv',p);
+  const cSoil=classifyPixel('soil',p), cWater=classifyPixel('water',p), cRock=classifyPixel('rock',p);
+  const cShade=classifyPixel('shade',p), cDom=classifyPixel('dom',p);
+  const rec=recoveryScore(p), fuel=fuelScore(p);
+  const recCat=scoreCategory(rec,RECOVERY_LABELS), fuelCat=scoreCategory(fuel,FUEL_LABELS);
+  const matched=RULES.filter(r=>r.test(p));
+  const comp=[['pv','#3E6B3E',p.pv],['npv','#C08A3E',p.npv],['soil','#8C4E30',p.soil],['rock','#5F5A48',p.rock],['water','#2C6E82',p.water]];
+  const compHtml=comp.map(([k,col,v])=>`<span style="width:${Math.max(v,0)*100}%;background:${col}" title="${k} ${v.toFixed(2)}"></span>`).join('');
+
+  el.innerHTML=`
+    <div class="spec-grid">
+      <div class="spec-field"><div class="sf-label">Location</div><div class="sf-val mono">${ll.lat.toFixed(3)}°, ${ll.lon.toFixed(3)}°</div><div class="sf-cat">r${p.row} c${p.col} · ~${Math.round(G.cellMetersX)} m</div></div>
+      <div class="spec-field"><div class="sf-label">Dominant cover</div><div class="sf-val">${cDom.label}</div><div class="sf-cat">${(cDom.value*100).toFixed(0)}% of unshaded</div></div>
+      <div class="spec-field"><div class="sf-label">PV</div><div class="sf-val mono">${p.pv.toFixed(2)}</div><div class="sf-cat">${cPv.label}</div></div>
+      <div class="spec-field"><div class="sf-label">NPV</div><div class="sf-val mono">${p.npv.toFixed(2)}</div><div class="sf-cat">${cNpv.label}</div></div>
+      <div class="spec-field"><div class="sf-label">Soil</div><div class="sf-val mono">${p.soil.toFixed(2)}</div><div class="sf-cat">${cSoil.label}</div></div>
+      <div class="spec-field"><div class="sf-label">Shade</div><div class="sf-val mono">${p.shade.toFixed(2)}</div><div class="sf-cat">${cShade.label}</div></div>
+      <div class="spec-field"><div class="sf-label">Rock</div><div class="sf-val mono">${p.rock.toFixed(2)}</div><div class="sf-cat">${cRock.label}</div></div>
+      <div class="spec-field"><div class="sf-label">Water</div><div class="sf-val mono">${p.water.toFixed(2)}</div><div class="sf-cat">${cWater.label}</div></div>
+    </div>
+    <div class="comp-bar">${compHtml}</div>
+    <div class="badge-row" style="margin-top:10px">
+      <span class="badge" style="background:${RECOVERY_COLORS[recCat.idx]}28;color:${RECOVERY_COLORS[recCat.idx]}">Recovery ${rec} &middot; ${recCat.label}</span>
+      <span class="badge" style="background:${FUEL_COLORS[fuelCat.idx]}28;color:${FUEL_COLORS[fuelCat.idx]}">Fuel risk ${fuel} &middot; ${fuelCat.label}</span>
+    </div>
+    <div class="spec-insights">
+      ${matched.length? `<ul>${matched.map(m=>`<li>${m.text}</li>`).join('')}</ul>` : '<p class="specimen-empty" style="margin-top:8px">No field-log rules match this cell.</p>'}
+    </div>
+  `;
+}
+
+/* ============== RENDER: DRAWER (THRESHOLDS) ============== */
+function sliderRow(labelText,id,min,max,step,value,fmt){
+  return `<div class="slider-row"><label>${labelText} <span class="val mono" id="${id}-val">${fmt(value)}</span></label>
+    <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}"></div>`;
+}
+function renderDrawer(){
+  const el=document.getElementById('thresholdGroups'); const th=state.thresholds;
+  el.innerHTML=`
+    <div class="tblock"><h4>Photosynthetic vegetation</h4>
+      ${sliderRow('Very low &le;','t-pv0',0.05,0.6,0.01,th.pv[0],v=>v.toFixed(2))}
+      ${sliderRow('Low &le;','t-pv1',0.1,0.7,0.01,th.pv[1],v=>v.toFixed(2))}
+      ${sliderRow('Moderate &le;','t-pv2',0.2,0.85,0.01,th.pv[2],v=>v.toFixed(2))}
+      ${sliderRow('High &le;','t-pv3',0.3,0.95,0.01,th.pv[3],v=>v.toFixed(2))}
+    </div>
+    <div class="tblock"><h4>Non-photosynthetic (dead fuel)</h4>
+      ${sliderRow('Very low &le;','t-npv0',0.05,0.6,0.01,th.npv[0],v=>v.toFixed(2))}
+      ${sliderRow('Low &le;','t-npv1',0.1,0.7,0.01,th.npv[1],v=>v.toFixed(2))}
+      ${sliderRow('Moderate &le;','t-npv2',0.2,0.85,0.01,th.npv[2],v=>v.toFixed(2))}
+      ${sliderRow('High &le;','t-npv3',0.3,0.95,0.01,th.npv[3],v=>v.toFixed(2))}
+    </div>
+    <div class="tblock"><h4>Soil fraction</h4>
+      ${sliderRow('Little bare ground &le;','t-soil0',0.05,0.4,0.01,th.soil[0],v=>v.toFixed(2))}
+      ${sliderRow('Moderate bare soil &le;','t-soil1',0.3,0.8,0.01,th.soil[1],v=>v.toFixed(2))}
+    </div>
+    <div class="tblock"><h4>Water fraction</h4>
+      ${sliderRow('No water &le;','t-water0',0.05,0.4,0.01,th.water[0],v=>v.toFixed(2))}
+      ${sliderRow('Mixed &le;','t-water1',0.3,0.8,0.01,th.water[1],v=>v.toFixed(2))}
+    </div>
+    <div class="tblock"><h4>Rock fraction</h4>
+      ${sliderRow('Low &le;','t-rock0',0.05,0.4,0.01,th.rock[0],v=>v.toFixed(2))}
+      ${sliderRow('Moderate &le;','t-rock1',0.3,0.8,0.01,th.rock[1],v=>v.toFixed(2))}
+    </div>
+    <div class="tblock"><h4>Shade fraction</h4>
+      ${sliderRow('Low shade &le;','t-shade0',0.05,0.4,0.01,th.shade[0],v=>v.toFixed(2))}
+      ${sliderRow('Moderate shade &le;','t-shade1',0.15,0.7,0.01,th.shade[1],v=>v.toFixed(2))}
+    </div>
+    <div class="tblock"><h4>Score weights</h4>
+      ${sliderRow('Recovery &middot; PV','w-r-pv',0,100,1,state.weights.recovery.pv,v=>v)}
+      ${sliderRow('Recovery &middot; time (unused)','w-r-time',0,100,1,state.weights.recovery.time,v=>v)}
+      ${sliderRow('Recovery &middot; 1&minus;soil','w-r-soil',0,100,1,state.weights.recovery.soilInv,v=>v)}
+      ${sliderRow('Recovery &middot; 1&minus;NPV','w-r-npv',0,100,1,state.weights.recovery.npvInv,v=>v)}
+      ${sliderRow('Fuel &middot; NPV','w-f-npv',0,100,1,state.weights.fuel.npv,v=>v)}
+      ${sliderRow('Fuel &middot; time (unused)','w-f-time',0,100,1,state.weights.fuel.time,v=>v)}
+      ${sliderRow('Fuel &middot; 1&minus;PV','w-f-pv',0,100,1,state.weights.fuel.pvInv,v=>v)}
+      <p class="weights-note">Time weights are 0 because this MESMA file has no time-since-fire band. Raise them only after a TSF raster is joined.</p>
+    </div>
+  `;
+  bindThreshold('t-pv0',v=>{th.pv[0]=v;enforceAsc(th.pv,0,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-pv1',v=>{th.pv[1]=v;enforceAsc(th.pv,1,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-pv2',v=>{th.pv[2]=v;enforceAsc(th.pv,2,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-pv3',v=>{th.pv[3]=v;enforceAsc(th.pv,3,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-npv0',v=>{th.npv[0]=v;enforceAsc(th.npv,0,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-npv1',v=>{th.npv[1]=v;enforceAsc(th.npv,1,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-npv2',v=>{th.npv[2]=v;enforceAsc(th.npv,2,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-npv3',v=>{th.npv[3]=v;enforceAsc(th.npv,3,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-soil0',v=>{th.soil[0]=v;enforceAsc(th.soil,0,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-soil1',v=>{th.soil[1]=v;enforceAsc(th.soil,1,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-water0',v=>{th.water[0]=v;enforceAsc(th.water,0,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-water1',v=>{th.water[1]=v;enforceAsc(th.water,1,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-rock0',v=>{th.rock[0]=v;enforceAsc(th.rock,0,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-rock1',v=>{th.rock[1]=v;enforceAsc(th.rock,1,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-shade0',v=>{th.shade[0]=v;enforceAsc(th.shade,0,0.01);},v=>v.toFixed(2));
+  bindThreshold('t-shade1',v=>{th.shade[1]=v;enforceAsc(th.shade,1,0.01);},v=>v.toFixed(2));
+  bindThreshold('w-r-pv',v=>{state.weights.recovery.pv=v;},v=>v);
+  bindThreshold('w-r-time',v=>{state.weights.recovery.time=v;},v=>v);
+  bindThreshold('w-r-soil',v=>{state.weights.recovery.soilInv=v;},v=>v);
+  bindThreshold('w-r-npv',v=>{state.weights.recovery.npvInv=v;},v=>v);
+  bindThreshold('w-f-npv',v=>{state.weights.fuel.npv=v;},v=>v);
+  bindThreshold('w-f-time',v=>{state.weights.fuel.time=v;},v=>v);
+  bindThreshold('w-f-pv',v=>{state.weights.fuel.pvInv=v;},v=>v);
+
+  document.getElementById('resetLink').onclick=()=>{
+    state.thresholds=JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS));
+    state.weights=JSON.parse(JSON.stringify(DEFAULT_WEIGHTS));
+    renderDrawer(); recompute();
+  };
+}
+function bindThreshold(id,setter,fmt){
+  const input=document.getElementById(id), out=document.getElementById(id+'-val');
+  if(!input||!out) return;
+  input.addEventListener('input',()=>{
+    const v=parseFloat(input.value); setter(v); out.textContent=fmt(v);
+    syncSlidersFromState(); recompute();
+  });
+}
+function enforceAsc(arr,idx,minGap){
+  for(let i=idx+1;i<arr.length;i++) if(arr[i]<arr[i-1]+minGap) arr[i]=arr[i-1]+minGap;
+  for(let i=idx-1;i>=0;i--) if(arr[i]>arr[i+1]-minGap) arr[i]=arr[i+1]-minGap;
+}
+function syncSlidersFromState(){
+  const th=state.thresholds;
+  const map=[
+    ['t-pv0',th.pv[0],v=>v.toFixed(2)],['t-pv1',th.pv[1],v=>v.toFixed(2)],
+    ['t-pv2',th.pv[2],v=>v.toFixed(2)],['t-pv3',th.pv[3],v=>v.toFixed(2)],
+    ['t-npv0',th.npv[0],v=>v.toFixed(2)],['t-npv1',th.npv[1],v=>v.toFixed(2)],
+    ['t-npv2',th.npv[2],v=>v.toFixed(2)],['t-npv3',th.npv[3],v=>v.toFixed(2)],
+    ['t-soil0',th.soil[0],v=>v.toFixed(2)],['t-soil1',th.soil[1],v=>v.toFixed(2)],
+    ['t-water0',th.water[0],v=>v.toFixed(2)],['t-water1',th.water[1],v=>v.toFixed(2)],
+    ['t-rock0',th.rock[0],v=>v.toFixed(2)],['t-rock1',th.rock[1],v=>v.toFixed(2)],
+    ['t-shade0',th.shade[0],v=>v.toFixed(2)],['t-shade1',th.shade[1],v=>v.toFixed(2)],
+  ];
+  map.forEach(([id,val,fmt])=>{
+    const input=document.getElementById(id), out=document.getElementById(id+'-val');
+    if(input){ input.value=val; out.textContent=fmt(val); }
+  });
+}
+
+/* ============== RECOMPUTE ============== */
+function recompute(){
+  invalidateLayer();
+  renderMap(); renderMapKey(); renderDials(); renderTickets(); renderFieldLog(); renderSpecimen();
+}
+
+/* ============== DRAWER TOGGLE ============== */
+document.getElementById('drawerToggle').addEventListener('click',()=>{
+  const drawer=document.getElementById('drawer'), toggle=document.getElementById('drawerToggle');
+  drawer.classList.toggle('open'); toggle.classList.toggle('open');
+});
+
+function fillTileSelect(){
+  const picker=document.getElementById('tilePicker');
+  const sel=document.getElementById('tileSelect');
+  const tiles=window.ATLAS_TILES;
+  if(!sel || !tiles || !tiles.length){
+    if(picker) picker.style.display='none';
+    return;
+  }
+  const current = tiles.find(t => (G.source||'').startsWith(t.id))
+    || tiles.find(t => t.label === G.tile)
+    || tiles.find(t => location.pathname.includes('/'+t.id+'/'));
+  sel.innerHTML='';
+  tiles.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.id;
+    opt.textContent=`${t.label} · ${t.date}`;
+    if(current && t.id===current.id) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change',()=>{
+    location.href=`../${sel.value}/postfire_landscape_atlas1.html`;
+  });
+}
+
+/* ============== INIT ============== */
+function init(){
+  data=unpackGrid(G);
+  const chip=document.getElementById('heroChip');
+  if(chip) chip.textContent=`${G.tile} · ${G.sceneDate} · ${validPixels().length.toLocaleString()} modeled cells`;
+  const blurb=document.getElementById('heroBlurb');
+  if(blurb){
+    const month = (()=>{
+      const d=G.sceneDate||'';
+      const m=d.split('-')[1];
+      const names={ '07':'July' };
+      return names[m] || d;
+    })();
+    const year=(G.sceneDate||'').slice(0,4);
+    blurb.textContent=`MESMA endmember fractions for Sentinel-2 tile ${G.tile}, for the month of ${month} ${year}.`;
+  }
+  const banner=document.querySelector('.banner-note');
+  if(banner){
+    banner.textContent = HAS_TSF
+      ? `Sentinel-2 tile ${G.tile} (${G.sceneDate}) with MESMA fractions and time-since-fire joined from new_data/Time_since_fire.`
+      : 'This file is a MESMA fractions cube only. Time-since-fire is not present, so recovery and fuel scores use vegetation, soil, and dead-fuel fractions (time weight defaults to 0).';
+  }
+  fillTileSelect();
+  renderSceneStrip();
+  const tsfBtn=document.getElementById('tsfTabBtn');
+  if(tsfBtn) tsfBtn.addEventListener('click', showTsfPage);
+  initMesmaMap();
+  renderTabs(); renderDrawer(); recompute();
+  if(mesmaMap) setTimeout(()=>mesmaMap.invalidateSize(),80);
+}
+init();
+})();
+</script>
+
+<script>
+(function(){
+  const MODAL_CONTENT = {
+    guide: `
+      <h3>Interactive map</h3>
+      <p>The map is the modeled Sentinel-2 MESMA strip for July 2026, drawn on an Esri street basemap for this tile. Unmodeled cells are transparent so streets show through. Map layers include original image, time since fire, fractions, and dominant cover. Recovery score and fuel risk are on a separate tab row.</p>
+      <h3>Clicking a pixel</h3>
+      <p>Click any modeled cell to inspect shade-normalized fractions, dominant cover, recovery and fuel scores, and matching field-log rules.</p>
+      <h3>Field notes drawer</h3>
+      <p>Open "Field notes" below the map to adjust category thresholds and score weights. Changing a slider recalculates every layer, dial, and log entry live.</p>
+    `,
+    sources: `
+      <p>This view is driven by a single MESMA fractions cube. Time-since-fire is not in the file, so recovery-stage and TSF-weighted scores are disabled (time weight = 0).</p>
+      <h3>Input image</h3>
+      <table class="info-table">
+        <tr><th>Item</th><th>Value</th></tr>
+        <tr><td>File</td><td>11_S_KV_2026_7_28_mesma_20260903T170510_fractions</td></tr>
+        <tr><td>Sensor / tile</td><td>Sentinel-2 11SKV</td></tr>
+        <tr><td>Image date</td><td>28 July 2026</td></tr>
+        <tr><td>Native grid</td><td>10 m, 10,980 × 10,980, UTM 11N</td></tr>
+        <tr><td>Modeled footprint</td><td>~15 × 60 km eastern strip (3.67 million 10 m pixels)</td></tr>
+        <tr><td>Atlas grid</td><td>120 × 480 cells (~125 m), shade-normalized means</td></tr>
+      </table>
+      <h3>MESMA fractions</h3>
+      <p>Multiple Endmember Spectral Mixture Analysis estimates the fractional contribution of surface components inside each pixel rather than assigning a single class.</p>
+      <table class="info-table">
+        <tr><th>Fraction</th><th>Meaning</th></tr>
+        <tr><td>PV</td><td>Photosynthetic vegetation (healthy green vegetation)</td></tr>
+        <tr><td>NPV</td><td>Non-photosynthetic vegetation (dead vegetation, litter, dry grass)</td></tr>
+        <tr><td>Soil</td><td>Bare exposed soil</td></tr>
+        <tr><td>Rock</td><td>Rock fraction</td></tr>
+        <tr><td>Water</td><td>Water fraction</td></tr>
+        <tr><td>Shade</td><td>Shadow fraction</td></tr>
+      </table>
+      <p>PV, NPV, soil, rock, and water in the atlas are shade-normalized (divided by 1 − shade) so they describe the unshaded surface mix.</p>
+    `,
+    thresholds: `
+      <p>To make the outputs easier to interpret, continuous fraction values are grouped into operational categories. These ranges are the defaults &mdash; open "Field notes" below the map to adjust them.</p>
+      <h3>PV (photosynthetic vegetation)</h3>
+      <table class="info-table">
+        <tr><th>PV fraction</th><th>Interpretation</th></tr>
+        <tr><td>0.00&ndash;0.20</td><td>Very low green vegetation</td></tr>
+        <tr><td>0.20&ndash;0.40</td><td>Low</td></tr>
+        <tr><td>0.40&ndash;0.60</td><td>Moderate</td></tr>
+        <tr><td>0.60&ndash;0.80</td><td>High</td></tr>
+        <tr><td>0.80&ndash;1.00</td><td>Very high</td></tr>
+      </table>
+      <div class="info-quote">Higher PV generally indicates healthier vegetation and stronger post-fire recovery.</div>
+      <h3>NPV (non-photosynthetic vegetation)</h3>
+      <table class="info-table">
+        <tr><th>NPV fraction</th><th>Interpretation</th></tr>
+        <tr><td>0.00&ndash;0.20</td><td>Very low dead fuel</td></tr>
+        <tr><td>0.20&ndash;0.40</td><td>Low</td></tr>
+        <tr><td>0.40&ndash;0.60</td><td>Moderate</td></tr>
+        <tr><td>0.60&ndash;0.80</td><td>High</td></tr>
+        <tr><td>0.80&ndash;1.00</td><td>Very high</td></tr>
+      </table>
+      <div class="info-quote">Higher NPV represents larger amounts of dead vegetation, which can contribute to fuel accumulation.</div>
+      <h3>Soil</h3>
+      <table class="info-table">
+        <tr><th>Soil fraction</th><th>Interpretation</th></tr>
+        <tr><td>0.00&ndash;0.20</td><td>Little bare ground</td></tr>
+        <tr><td>0.20&ndash;0.50</td><td>Moderate bare soil</td></tr>
+        <tr><td>&gt;0.50</td><td>High bare soil exposure</td></tr>
+      </table>
+      <div class="info-quote">Higher soil fractions may indicate recent disturbance, exposed ground, or potential erosion.</div>
+    `,
+    recovery: `
+      <p>To summarize several indicators into one easy-to-understand metric, the dashboard calculates a Recovery Score.</p>
+      <h3>Formula</h3>
+      <div class="formula-box">
+        <div>50% &times; PV</div>
+        <div>+ 30% &times; (1 &minus; Soil)</div>
+        <div>+ 20% &times; (1 &minus; NPV)</div>
+      </div>
+      <h3>Categories</h3>
+      <table class="info-table">
+        <tr><th>Score</th><th>Meaning</th></tr>
+        <tr><td>0&ndash;25</td><td>Very Poor Recovery</td></tr>
+        <tr><td>25&ndash;50</td><td>Poor Recovery</td></tr>
+        <tr><td>50&ndash;75</td><td>Moderate Recovery</td></tr>
+        <tr><td>75&ndash;100</td><td>Healthy Recovery</td></tr>
+      </table>
+      <div class="info-quote">Higher scores indicate greater vegetation cover, less exposed soil, and lower dead fuel. Time since fire is not in this MESMA file, so it is not used.</div>
+      <p class="info-note">Weights are adjustable in the "Field notes" drawer below the map.</p>
+    `,
+    fuel: `
+      <p>A second metric estimates potential fuel accumulation.</p>
+      <h3>Formula</h3>
+      <div class="formula-box">
+        <div>70% &times; NPV</div>
+        <div>+ 30% &times; (1 &minus; PV)</div>
+      </div>
+      <h3>Categories</h3>
+      <table class="info-table">
+        <tr><th>Score</th><th>Meaning</th></tr>
+        <tr><td>0&ndash;25</td><td>Low</td></tr>
+        <tr><td>25&ndash;50</td><td>Moderate</td></tr>
+        <tr><td>50&ndash;75</td><td>High</td></tr>
+        <tr><td>75&ndash;100</td><td>Very High</td></tr>
+      </table>
+      <div class="info-quote">This is an indicator based on satellite-derived variables. It is not a direct fire behavior prediction.</div>
+      <p class="info-note">That distinction is important. Weights are adjustable in the "Field notes" drawer below the map.</p>
+    `,
+  };
+
+  const MODAL_TITLES = {
+    guide:'How to read this dashboard', sources:'Data sources', thresholds:'Reading the thresholds',
+    recovery:'Recovery score', fuel:'Fuel risk score',
+  };
+
+  const overlay=document.getElementById('infoModalOverlay');
+  const titleEl=document.getElementById('modalTitle');
+  const bodyEl=document.getElementById('modalBody');
+  const tabButtons=document.querySelectorAll('.modal-tab');
+
+  function openModal(tab){
+    setTab(tab);
+    document.body.appendChild(overlay);
+    overlay.classList.add('open');
+  }
+  function closeModal(){ overlay.classList.remove('open'); }
+  function setTab(tab){
+    titleEl.textContent=MODAL_TITLES[tab] || 'About this data';
+    bodyEl.innerHTML=MODAL_CONTENT[tab] || '';
+    tabButtons.forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+    bodyEl.scrollTop=0;
+  }
+
+  document.querySelectorAll('[data-tab]').forEach(btn=>{
+    btn.addEventListener('click',()=>openModal(btn.dataset.tab));
+  });
+  document.getElementById('infoBtnMain').addEventListener('click',()=>openModal('sources'));
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  overlay.addEventListener('click',(e)=>{ if(e.target===overlay) closeModal(); });
+  document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeModal(); });
+})();
+</script>
+</body>
+</html>
