@@ -657,6 +657,7 @@ def write_atlas_index(
         flush=True,
     )
     copy_tsf_html(atlas_root)
+    copy_tsf_year_layers(atlas_root)
 
 
 BURN_MAP_HTML = """<!DOCTYPE html>
@@ -742,6 +743,90 @@ def copy_tsf_html(atlas_root: Path) -> None:
         if png.exists():
             shutil.copy2(png, dest.with_suffix(".png"))
     print(f"Attached {src} ({src.stat().st_size/1e6:.2f} MB) to {len(dests)} atlas location(s)", flush=True)
+
+
+TSF_YEAR_KEEP = (
+    "burn_year",
+    "burn_date",
+    "Incid_Name",
+    "tsf_at_ignition",
+    "tsf_as_of_dec_prev",
+    "days_from_dec_prev",
+    "as_of_date",
+    "BurnBndAc",
+    "date_source",
+)
+
+
+def slim_tsf_geojson(src: Path, dest: Path) -> int:
+    data = json.loads(src.read_text())
+    out_feats = []
+    for feat in data.get("features") or []:
+        props = feat.get("properties") or {}
+        slim = {k: props[k] for k in TSF_YEAR_KEEP if k in props}
+        if "burn_year" in slim:
+            try:
+                slim["burn_year"] = int(slim["burn_year"])
+            except (TypeError, ValueError):
+                pass
+        for key in ("tsf_at_ignition", "tsf_as_of_dec_prev", "days_from_dec_prev"):
+            if key in slim:
+                try:
+                    slim[key] = round(float(slim[key]), 1)
+                except (TypeError, ValueError):
+                    pass
+        geom = feat.get("geometry")
+        if not geom:
+            continue
+        out_feats.append({"type": "Feature", "properties": slim, "geometry": geom})
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(
+        json.dumps({"type": "FeatureCollection", "features": out_feats}, separators=(",", ":"))
+    )
+    return len(out_feats)
+
+
+def find_tsf_year_dir() -> Path | None:
+    home = find_home()
+    folders = ("by_year_2015_2026", "by_year_2015_2020")
+    roots = [
+        Path.cwd() / "Time_since_fire",
+        Path.cwd(),
+        find_new_data(home) / "Time_since_fire",
+        Path("/home/jovyan/data-store/new_data/Time_since_fire"),
+        Path("/data-store/iplant/home/samiksha23/SCE-CU/sentinel2_data/new_data/Time_since_fire"),
+        Path("/home/jovyan/data-store/iplant/home/samiksha23/SCE-CU/sentinel2_data/new_data/Time_since_fire"),
+        home / "SCE-CU/sentinel2_data/new_data/Time_since_fire",
+    ]
+    names = ("fires.geojson", "fires_web.geojson", "fires_2015_2026.geojson", "fires_2015_2020.geojson")
+    for folder in folders:
+        for root in roots:
+            d = root / folder if root.name != folder else root
+            if any((d / name).exists() for name in names):
+                return d
+    return None
+
+
+def copy_tsf_year_layers(atlas_root: Path) -> None:
+    """Copy 2015–2026 fire perimeters into atlas/tsf_years/ for the Fires layer."""
+    src_dir = find_tsf_year_dir()
+    if src_dir is None:
+        print(
+            "No year-fire GeoJSON yet; Fires tab will ask you to run tsf_by_year_2015_2020.ipynb.",
+            flush=True,
+        )
+        return
+    src = next(
+        (
+            src_dir / name
+            for name in ("fires.geojson", "fires_web.geojson", "fires_2015_2026.geojson", "fires_2015_2020.geojson")
+            if (src_dir / name).exists()
+        ),
+        None,
+    )
+    dest = atlas_root / "tsf_years" / "fires.geojson"
+    n = slim_tsf_geojson(src, dest)
+    print(f"Attached {n} year-fire perimeters to {dest}", flush=True)
 
 
 def discover_fractions(date: str, home: Path, mesma_dir: Path | None = None) -> list[Path]:
