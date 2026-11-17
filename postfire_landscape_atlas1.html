@@ -6,7 +6,12 @@
 <title>Postfire recovery atlas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
+<link rel="preload" href="mesma_original.png" as="image">
+<link rel="preload" href="mesma_grid.js" as="script">
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root{
@@ -426,23 +431,23 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="mesma_grid.js"></script>
 <script src="atlas_tiles.js" onerror="window.ATLAS_TILES=[]"></script>
+<script src="mesma_grid.js" defer></script>
 <script>
 (function(){
 
 const needJs=document.getElementById('jsRequired');
 if(needJs) needJs.remove();
 
-if(!window.MESMA_GRID){
-  document.body.insertAdjacentHTML('afterbegin',
-    '<p style="padding:20px;font-family:sans-serif">Could not load the MESMA grid. On CyVerse run the Open-on-CyVerse notebook cell instead of this preview.</p>');
-  return;
-}
-
-const G = window.MESMA_GRID;
-const COLS = G.cols, ROWS = G.rows;
-const HAS_TSF = !!(G.bands && G.bands.tsf);
+let G = window.MESMA_GRID || null;
+let COLS = G ? G.cols : 1;
+let ROWS = G ? G.rows : 1;
+let HAS_TSF = !!(G && G.bands && G.bands.tsf);
+let LL = (G && G.lonlat) || null;
+let MESMA_BOUNDS = LL ? [[LL.south, LL.west], [LL.north, LL.east]] : null;
+let punchedUrl = null;
+let _vp = null;
+let tsfFiresLoading = null;
 
 const TSF_LABELS = ['Recently burned','Early recovery','Intermediate recovery','Mature vegetation','Long unburned'];
 const TSF_COLORS = ['#B23A1F','#C08A3E','#9B9450','#6E8E56','#3F5F3F'];
@@ -515,7 +520,11 @@ const RULES = [
 let state = {mode:'rgb', thresholds:JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS)),
   weights:JSON.parse(JSON.stringify(DEFAULT_WEIGHTS)), selected:null};
 let data = [];
-function validPixels(){ return data.filter(p=>p.valid); }
+function validPixels(){
+  if(_vp) return _vp;
+  _vp = data.filter(p=>p.valid);
+  return _vp;
+}
 
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 
@@ -544,6 +553,16 @@ function unpackGrid(g){
     }
   }
   return out;
+}
+function applyGrid(g){
+  G = g;
+  COLS = g.cols;
+  ROWS = g.rows;
+  HAS_TSF = !!(g.bands && g.bands.tsf);
+  LL = g.lonlat || LL;
+  if(LL) MESMA_BOUNDS = [[LL.south, LL.west], [LL.north, LL.east]];
+  _vp = null;
+  data = unpackGrid(g);
 }
 function cellLonLat(p){
   const u=(p.col+0.5)/COLS, v=(p.row+0.5)/ROWS;
@@ -686,11 +705,36 @@ function ensureTsfMap(){
   return true;
 }
 function ringOfTile(t){
+  if(!t) return null;
   if(t.ring && t.ring.length) return t.ring;
   if(t.west!=null && t.east!=null && t.south!=null && t.north!=null){
     return [[t.south,t.west],[t.south,t.east],[t.north,t.east],[t.north,t.west]];
   }
   return null;
+}
+function currentAtlasTile(){
+  const tiles=window.ATLAS_TILES||[];
+  const path=location.pathname.replace(/\\/g,'/');
+  return tiles.find(t=>t.id && path.includes('/'+t.id+'/'))
+    || tiles.find(t=>G && ((G.source||'').startsWith(t.id) || t.label===G.tile))
+    || null;
+}
+function boundsFromRing(ring){
+  if(!ring || !ring.length) return null;
+  let s=90, n=-90, w=180, e=-180;
+  ring.forEach(p=>{
+    const lat=p[0], lon=p[1];
+    if(lat<s) s=lat; if(lat>n) n=lat; if(lon<w) w=lon; if(lon>e) e=lon;
+  });
+  return [[s,w],[n,e]];
+}
+function computeMesmaBounds(){
+  if(G && G.lonlat){
+    const ll=G.lonlat;
+    LL=ll;
+    return [[ll.south,ll.west],[ll.north,ll.east]];
+  }
+  return boundsFromRing(ringOfTile(currentAtlasTile()));
 }
 function drawTsfGrids(){
   if(!tsfLeaflet) return;
@@ -714,19 +758,7 @@ function drawTsfGrids(){
   if(tsfFireLayer) tsfFireLayer.bringToFront();
 }
 async function enrichTileRings(){
-  const tiles=window.ATLAS_TILES||[];
-  const need=tiles.filter(t=>!ringOfTile(t) && t.id);
-  await Promise.all(need.map(async t=>{
-    try{
-      const res=await fetch('../'+t.id+'/mesma_grid.js');
-      if(!res.ok) return;
-      const txt=await res.text();
-      const payload=JSON.parse(txt.replace(/^window\.MESMA_GRID=/,'').replace(/;?\s*$/,''));
-      const ll=payload.lonlat||{};
-      if(ll.west==null) return;
-      t.west=ll.west; t.east=ll.east; t.south=ll.south; t.north=ll.north;
-    }catch(e){}
-  }));
+  // atlas_tiles.js already has rings. Do not fetch other 4 MB mesma_grid.js files.
 }
 function setTsfLegend(view){
   const title=document.getElementById('tsfLegendTitle');
@@ -813,16 +845,18 @@ function renderYearChips(){
 }
 async function loadTsfYears(){
   if(tsfFires) return tsfFires;
-  for(const url of tsfYearUrls()){
-    try{
+  if(tsfFiresLoading) return tsfFiresLoading;
+  tsfFiresLoading=(async()=>{
+    const urls=tsfYearUrls();
+    const found=await Promise.any(urls.map(async url=>{
       const res=await fetch(url);
-      if(res.ok){
-        tsfFires=await res.json();
-        return tsfFires;
-      }
-    }catch(e){}
-  }
-  return null;
+      if(!res.ok) throw new Error('missing');
+      return res.json();
+    })).catch(()=>null);
+    tsfFires=found;
+    return tsfFires;
+  })();
+  return tsfFiresLoading;
 }
 function clearTsfTabs(){
   document.getElementById('tsfTabBtn')?.classList.remove('active');
@@ -976,9 +1010,6 @@ function renderTickets(){
 /* ============== RENDER: MAP (Leaflet basemap + MESMA overlay) ============== */
 const canvas=document.getElementById('mapCanvas'), ctx=canvas.getContext('2d');
 const rgbImg=new Image();
-rgbImg.src='mesma_original.png';
-const LL=G.lonlat||null;
-const MESMA_BOUNDS=LL?[[LL.south,LL.west],[LL.north,LL.east]]:null;
 let mesmaMap=null, overlay=null, selectRect=null;
 let layerCache=null, layerCacheMode=null;
 let sceneFireLayer=null;
@@ -1097,9 +1128,26 @@ async function syncFiresLayer(){
 }
 
 function contentSize(){
-  if(rgbImg.naturalWidth) return {w:rgbImg.naturalWidth, h:rgbImg.naturalHeight};
-  const max=1024, s=Math.min(max/Math.max(COLS,1), max/Math.max(ROWS,1));
+  const max=1024;
+  if(rgbImg.naturalWidth){
+    const s=Math.min(1, max/Math.max(rgbImg.naturalWidth, rgbImg.naturalHeight));
+    return {w:Math.max(1,Math.round(rgbImg.naturalWidth*s)), h:Math.max(1,Math.round(rgbImg.naturalHeight*s))};
+  }
+  const s=Math.min(max/Math.max(COLS,1), max/Math.max(ROWS,1));
   return {w:Math.max(1,Math.round(COLS*s)), h:Math.max(1,Math.round(ROWS*s))};
+}
+function rgbOverlayUrl(){ return punchedUrl || 'mesma_original.png'; }
+function maybePunchRgb(){
+  if(punchedUrl || !rgbImg.naturalWidth) return;
+  const {w,h}=contentSize();
+  const off=document.createElement('canvas');
+  off.width=w; off.height=h;
+  const o=off.getContext('2d');
+  o.imageSmoothingEnabled=false;
+  o.drawImage(rgbImg,0,0,w,h);
+  punchBlack(o,w,h);
+  punchedUrl=off.toDataURL('image/png');
+  if(overlay && (state.mode==='rgb' || state.mode==='fires')) overlay.setUrl(punchedUrl);
 }
 function invalidateLayer(){ layerCache=null; layerCacheMode=null; }
 function punchBlack(o,w,h){
@@ -1168,15 +1216,16 @@ function renderMap(){
     if(mesmaMap) mesmaMap.invalidateSize();
     return;
   }
-  const layer=getLayerCanvas();
-  if(mesmaMap && overlay){
-    overlay.setUrl(layer.toDataURL('image/png'));
-    overlay.once('load', sharpenOverlay);
-    sharpenOverlay();
-    updateSelectRect();
-    mesmaMap.invalidateSize();
-    return;
+  if(!mesmaMap || !overlay) return;
+  if(state.mode==='rgb'){
+    overlay.setUrl(rgbOverlayUrl());
+  } else if(data.length){
+    overlay.setUrl(getLayerCanvas().toDataURL('image/png'));
   }
+  overlay.once('load', sharpenOverlay);
+  sharpenOverlay();
+  updateSelectRect();
+  mesmaMap.invalidateSize();
 }
 function placeTooltip(evt, html){
   const frame=document.querySelector('.map-frame');
@@ -1188,6 +1237,7 @@ function placeTooltip(evt, html){
 }
 function initMesmaMap(){
   const el=document.getElementById('mesmaMap');
+  MESMA_BOUNDS = MESMA_BOUNDS || computeMesmaBounds();
   if(typeof L==='undefined' || !el || !MESMA_BOUNDS) return;
   mesmaMap=L.map(el,{zoomControl:false, attributionControl:true});
   const streets=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{
@@ -1197,7 +1247,7 @@ function initMesmaMap(){
     attribution:'Tiles &copy; Esri'
   });
   streets.addTo(mesmaMap);
-  overlay=L.imageOverlay(getLayerCanvas().toDataURL('image/png'), MESMA_BOUNDS,{
+  overlay=L.imageOverlay(rgbOverlayUrl(), MESMA_BOUNDS,{
     opacity:0.55, interactive:false, pane:'overlayPane', className:'mesma-overlay'
   }).addTo(mesmaMap);
   L.control.layers({'Streets':streets,'Satellite':sat}, {'MESMA':overlay},{collapsed:true}).addTo(mesmaMap);
@@ -1237,7 +1287,12 @@ function initMesmaMap(){
   if(op) op.addEventListener('input', applyOpacity);
   applyOpacity();
 }
-rgbImg.onload=()=>{ invalidateLayer(); if(data.length) renderMap(); };
+rgbImg.onload=()=>{
+  const run=()=>{ maybePunchRgb(); invalidateLayer(); if(mesmaMap) renderMap(); };
+  if(window.requestIdleCallback) requestIdleCallback(run,{timeout:1200});
+  else setTimeout(run,0);
+};
+rgbImg.src='mesma_original.png';
 
 document.getElementById('zoomInBtn').onclick=()=>{ if(mesmaMap) mesmaMap.zoomIn(); };
 document.getElementById('zoomOutBtn').onclick=()=>{ if(mesmaMap) mesmaMap.zoomOut(); };
@@ -1248,16 +1303,34 @@ function renderSceneStrip(){
   const el=document.getElementById('sceneStrip');
   const tiles=window.ATLAS_TILES;
   if(!el || !tiles || !tiles.length){ if(el) el.style.display='none'; return; }
-  const current=tiles.find(t => (G.source||'').startsWith(t.id)) || tiles.find(t => t.label===G.tile);
+  const current=tiles.find(t => G && (G.source||'').startsWith(t.id))
+    || tiles.find(t => G && t.label===G.tile)
+    || currentAtlasTile();
   el.innerHTML=tiles.map(t=>{
     const on=current && t.id===current.id ? 'on' : '';
     const src=`../${t.id}/mesma_original.png`;
+    const img=current && t.id===current.id
+      ? `<img src="${src}" alt="${t.label}" decoding="async">`
+      : `<img data-src="${src}" alt="${t.label}" decoding="async">`;
     return `<button type="button" class="${on}" data-id="${t.id}" title="${t.label}">
-      <img src="${src}" alt="${t.label}"><span>${t.label}</span></button>`;
+      ${img}<span>${t.label}</span></button>`;
   }).join('');
   el.querySelectorAll('button').forEach(btn=>{
     btn.onclick=()=>{ location.href=`../${btn.dataset.id}/postfire_landscape_atlas1.html`; };
   });
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(entries=>{
+      entries.forEach(en=>{
+        if(!en.isIntersecting) return;
+        const img=en.target;
+        if(img.dataset.src){ img.src=img.dataset.src; delete img.dataset.src; }
+        io.unobserve(img);
+      });
+    }, {root:el, rootMargin:'80px'});
+    el.querySelectorAll('img[data-src]').forEach(img=>io.observe(img));
+  } else {
+    el.querySelectorAll('img[data-src]').forEach(img=>{ img.src=img.dataset.src; });
+  }
 }
 
 /* ============== RENDER: MAP KEY ============== */
@@ -1549,8 +1622,9 @@ function fillTileSelect(){
     if(picker) picker.style.display='none';
     return;
   }
-  const current = tiles.find(t => (G.source||'').startsWith(t.id))
-    || tiles.find(t => t.label === G.tile)
+  const current = tiles.find(t => G && (G.source||'').startsWith(t.id))
+    || tiles.find(t => G && t.label === G.tile)
+    || currentAtlasTile()
     || tiles.find(t => location.pathname.includes('/'+t.id+'/'));
   sel.innerHTML='';
   tiles.forEach(t=>{
@@ -1566,8 +1640,8 @@ function fillTileSelect(){
 }
 
 /* ============== INIT ============== */
-function init(){
-  data=unpackGrid(G);
+function fillHeroFromGrid(){
+  if(!G) return;
   const chip=document.getElementById('heroChip');
   if(chip) chip.textContent=`${G.tile} · ${G.sceneDate} · ${validPixels().length.toLocaleString()} modeled cells`;
   const blurb=document.getElementById('heroBlurb');
@@ -1587,6 +1661,34 @@ function init(){
       ? `Sentinel-2 tile ${G.tile} (${G.sceneDate}) with MESMA fractions and time-since-fire joined from new_data/Time_since_fire.`
       : 'This file is a MESMA fractions cube only. Time-since-fire is not present, so recovery and fuel scores use vegetation, soil, and dead-fuel fractions (time weight defaults to 0).';
   }
+}
+function finishWithGrid(){
+  applyGrid(window.MESMA_GRID);
+  fillHeroFromGrid();
+  if(mesmaMap && MESMA_BOUNDS){
+    overlay && overlay.setBounds(MESMA_BOUNDS);
+    mesmaMap.fitBounds(MESMA_BOUNDS,{padding:[10,10]});
+  }
+  recompute();
+  renderSceneFireChips();
+  if(state.mode==='fires') syncFiresLayer();
+}
+function whenGridReady(cb){
+  if(window.MESMA_GRID){ cb(); return; }
+  const s=[...document.scripts].find(el=>(el.src||'').includes('mesma_grid.js'));
+  const fail=()=>{
+    const chip=document.getElementById('heroChip');
+    if(chip) chip.textContent='Could not load MESMA grid';
+  };
+  if(!s){ fail(); return; }
+  if(s.dataset.loaded==='1' || (s.complete && window.MESMA_GRID)){ cb(); return; }
+  s.addEventListener('load', ()=>{ if(window.MESMA_GRID) cb(); else fail(); });
+  s.addEventListener('error', fail);
+}
+function init(){
+  const t=currentAtlasTile();
+  const chip=document.getElementById('heroChip');
+  if(chip && t) chip.textContent=`${t.label} · ${t.date}`;
   fillTileSelect();
   renderSceneStrip();
   const tsfBtn=document.getElementById('tsfTabBtn');
@@ -1603,11 +1705,12 @@ function init(){
     });
   }
   initMesmaMap();
-  renderTabs(); renderDrawer(); recompute();
+  renderTabs(); renderDrawer();
   renderSceneFireChips();
   if(mesmaMap) setTimeout(()=>mesmaMap.invalidateSize(),80);
   const start=new URLSearchParams(location.search).get('view') || location.hash.replace('#','');
   if(start==='fire_grids') showFireGrids();
+  whenGridReady(finishWithGrid);
 }
 init();
 })();
