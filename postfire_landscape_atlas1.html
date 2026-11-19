@@ -106,29 +106,36 @@
   .tab.active{color:var(--ink);background:var(--card);border-color:var(--ink);border-bottom:2px solid var(--card);}
 
   /* ---- grid ---- */
-  .grid{display:grid;grid-template-columns:180px minmax(0,1.7fr) 250px;gap:14px;align-items:start;}
+  .grid{display:grid;grid-template-columns:216px minmax(0,1.7fr) 250px;gap:14px;align-items:start;}
   @media (max-width:1020px){.grid{grid-template-columns:1fr;}.col-map{order:-1;}}
 
   /* ---- dials ---- */
-  .dial-card{background:var(--card);border:1.5px solid var(--ink);border-radius:12px;padding:16px;margin-bottom:12px;}
-  .dial-ring{width:112px;height:112px;border-radius:50%;margin:0 auto 10px;position:relative;}
-  .dial-hole{position:absolute;inset:15px;border-radius:50%;background:var(--card);
+  .dials{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .dial-card{background:var(--card);border:1.5px solid var(--ink);border-radius:10px;padding:10px 8px 8px;margin:0;
+    display:flex;flex-direction:column;align-items:center;min-height:132px;}
+  .dial-card[data-mode]{cursor:pointer;}
+  .dial-card[data-mode]:hover{background:var(--card-2);}
+  .dial-card.on{border-color:var(--ember);box-shadow:0 0 0 1px var(--ember);}
+  .dial-ring{width:70px;height:70px;border-radius:50%;margin:0 0 6px;position:relative;flex:0 0 auto;}
+  .dial-hole{position:absolute;inset:10px;border-radius:50%;background:var(--card);
     display:flex;flex-direction:column;align-items:center;justify-content:center;}
-  .dial-hole .num{font-size:25px;font-weight:600;color:var(--ink);}
-  .dial-hole .cat{font-size:9.5px;color:var(--ink-soft);text-align:center;padding:0 6px;margin-top:2px;line-height:1.3;}
-  .dial-label{text-align:center;font-family:'Bitter',serif;font-weight:600;font-size:13px;}
-  .dist-mini{display:flex;height:6px;border-radius:4px;overflow:hidden;background:var(--line);margin-top:12px;}
+  .dial-hole .num{font-size:13px;font-weight:600;color:var(--ink);line-height:1;letter-spacing:-0.02em;}
+  .dial-hole .num.wide{font-size:11px;}
+  .dial-hole .cat{font-size:8px;color:var(--ink-soft);text-align:center;padding:0 2px;margin-top:3px;line-height:1.15;max-width:46px;}
+  .dial-label{text-align:center;font-family:'Bitter',serif;font-weight:600;font-size:11px;line-height:1.2;margin-top:auto;}
+  .dial-label .info-icon{width:15px;height:15px;font-size:9px;margin-left:2px;vertical-align:middle;}
+  .dial-scope{font-size:8.5px;color:var(--ink-faint);text-align:center;margin-top:2px;line-height:1.2;}
+  .dist-mini{display:flex;height:4px;border-radius:4px;overflow:hidden;background:var(--line);margin-top:7px;width:100%;}
   .dist-mini span{height:100%;}
 
-  /* ---- tickets ---- */
-  .ticket{position:relative;background:var(--card-2);border-top:1.5px dashed var(--line-strong);
-    border-bottom:1.5px dashed var(--line-strong);padding:9px 16px;margin-bottom:9px;
-    display:flex;justify-content:space-between;align-items:baseline;}
-  .ticket::before,.ticket::after{content:'';position:absolute;width:14px;height:14px;
-    background:var(--page);border-radius:50%;top:50%;transform:translateY(-50%);}
-  .ticket::before{left:-7px;} .ticket::after{right:-7px;}
-  .ticket .t-label{font-size:11px;color:var(--ink-soft);}
-  .ticket .t-val{font-weight:600;font-size:15px;color:var(--ink);}
+  /* ---- stats ---- */
+  .stats-card{background:var(--card);border:1.5px solid var(--ink);border-radius:10px;padding:8px 10px;}
+  .stats-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:5px 0;}
+  .stats-row + .stats-row{border-top:1px solid var(--line);}
+  .stats-row span{font-size:11px;color:var(--ink-soft);line-height:1.3;}
+  .stats-row b{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;color:var(--ink);text-align:right;white-space:nowrap;}
+  .stats-head{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);padding:8px 0 2px;}
+  .stats-head:first-child{padding-top:2px;}
 
   /* ---- map ---- */
   .map-plate{background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:10px;width:100%;}
@@ -140,6 +147,17 @@
     image-rendering:crisp-edges;
     image-rendering:-moz-crisp-edges;
   }
+  #mesmaMap img.mesma-overlay.flam-pixels,
+  #mesmaMap .leaflet-image-layer.flam-pixels{
+    image-rendering:pixelated !important;
+    image-rendering:crisp-edges !important;
+    background:transparent !important;
+    background-color:transparent !important;
+  }
+  .flam-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px;}
+  .flam-table th{text-align:left;font-weight:500;color:var(--ink-faint);padding:3px 8px 3px 0;white-space:nowrap;}
+  .flam-table td{padding:3px 0;font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .flam-table tr+tr th,.flam-table tr+tr td{border-top:1px solid var(--line);}
   canvas#mapCanvas{display:none;}
   .map-frame .leaflet-control-attribution{font-size:9px;}
   .zoom-btns{display:flex;gap:6px;align-items:center;flex-shrink:0;}
@@ -185,6 +203,11 @@
   .badge{display:inline-block;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:4px;width:fit-content;}
   .spec-insights ul{margin:8px 0 0;padding-left:16px;}
   .spec-insights li{font-size:11.5px;color:var(--ink-soft);margin-bottom:5px;line-height:1.5;}
+  .flam-pop{background:var(--card-2);border:1.5px solid var(--ink);border-radius:8px;padding:12px;margin:0 0 12px;}
+  .flam-pop .sf-label{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:4px;}
+  .flam-pop .sf-val{font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--ink);line-height:1.1;}
+  .flam-pop .sf-cat{font-size:11px;color:var(--ink-soft);margin-top:4px;line-height:1.45;}
+  .flam-pop .flam-formula{font-size:11px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);color:var(--ink);}
 
   .log-card{background:var(--card);border:1.5px solid var(--ink);border-radius:8px;padding:15px;}
   .log-card h3{font-family:'Bitter',serif;font-weight:600;font-size:14px;margin:0 0 10px;}
@@ -220,6 +243,8 @@
     background:var(--ember);cursor:pointer;border:2px solid var(--card-2);}
   input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ember);
     cursor:pointer;border:2px solid var(--card-2);}
+  .flam-opts{display:none;flex-wrap:wrap;gap:4px;margin:0 0 10px;}
+  .flam-opts.show{display:flex;}
   .weights-note{font-size:10.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5;}
   .reset-link{display:inline-block;margin-top:6px;font-size:11.5px;color:var(--ink-soft);cursor:pointer;
     text-decoration:underline;text-decoration-color:var(--line-strong);}
@@ -307,6 +332,10 @@
   <nav class="tabstrip" id="tabstrip"></nav>
   <p class="tabstrip-label">Scores</p>
   <nav class="tabstrip tabstrip-scores" id="scoreTabs"></nav>
+  <div class="flam-opts" id="flamOpts">
+    <button type="button" class="tab" data-flam="A">Option A · sigmoid (0–1)</button>
+    <button type="button" class="tab" data-flam="B">Option B · exponential</button>
+  </div>
   <p class="tabstrip-label">Time since fire</p>
   <nav class="tabstrip tabstrip-tsf">
     <button type="button" class="tab" id="tsfTabBtn">Days since last burn (2026)</button>
@@ -346,15 +375,31 @@
 
   <div class="grid">
     <div class="col-left">
-      <div class="dial-card">
-        <div class="dial-ring" id="dialRecovery"><div class="dial-hole"><span class="num mono" id="dialRecoveryNum">-</span><span class="cat" id="dialRecoveryCat">-</span></div></div>
-        <div class="dial-label">Recovery score <button class="info-icon" data-tab="recovery" title="What is this?">i</button></div>
-        <div class="dist-mini" id="distRecovery"></div>
-      </div>
-      <div class="dial-card">
-        <div class="dial-ring" id="dialFuel"><div class="dial-hole"><span class="num mono" id="dialFuelNum">-</span><span class="cat" id="dialFuelCat">-</span></div></div>
-        <div class="dial-label">Fuel risk score <button class="info-icon" data-tab="fuel" title="What is this?">i</button></div>
-        <div class="dist-mini" id="distFuel"></div>
+      <div class="dials">
+        <div class="dial-card" data-mode="recovery" title="Open Recovery score map">
+          <div class="dial-ring" id="dialRecovery"><div class="dial-hole"><span class="num mono" id="dialRecoveryNum">-</span><span class="cat" id="dialRecoveryCat">-</span></div></div>
+          <div class="dial-label">Recovery <button class="info-icon" data-tab="recovery" title="What is this?">i</button></div>
+          <div class="dial-scope" id="dialRecoveryScope">tile mean</div>
+          <div class="dist-mini" id="distRecovery"></div>
+        </div>
+        <div class="dial-card" data-mode="fuel" title="Open Fuel risk map">
+          <div class="dial-ring" id="dialFuel"><div class="dial-hole"><span class="num mono" id="dialFuelNum">-</span><span class="cat" id="dialFuelCat">-</span></div></div>
+          <div class="dial-label">Fuel risk <button class="info-icon" data-tab="fuel" title="What is this?">i</button></div>
+          <div class="dial-scope" id="dialFuelScope">tile mean</div>
+          <div class="dist-mini" id="distFuel"></div>
+        </div>
+        <div class="dial-card" id="dialFlamACard" data-mode="flam" data-flam-opt="A" title="Open Flammability index · Option A">
+          <div class="dial-ring" id="dialFlamA"><div class="dial-hole"><span class="num mono" id="dialFlamANum">-</span><span class="cat" id="dialFlamACat">-</span></div></div>
+          <div class="dial-label">FI-A <button class="info-icon" data-tab="flam" title="What is this?">i</button></div>
+          <div class="dial-scope" id="dialFlamAScope">tile mean</div>
+          <div class="dist-mini" id="distFlamA"></div>
+        </div>
+        <div class="dial-card" id="dialFlamBCard" data-mode="flam" data-flam-opt="B" title="Open Flammability index · Option B">
+          <div class="dial-ring" id="dialFlamB"><div class="dial-hole"><span class="num mono" id="dialFlamBNum">-</span><span class="cat" id="dialFlamBCat">-</span></div></div>
+          <div class="dial-label">FI-B <button class="info-icon" data-tab="flam" title="What is this?">i</button></div>
+          <div class="dial-scope" id="dialFlamBScope">tile mean</div>
+          <div class="dist-mini" id="distFlamB"></div>
+        </div>
       </div>
       <div id="tickets"></div>
     </div>
@@ -423,6 +468,7 @@
         <button class="modal-tab" data-tab="thresholds">Thresholds</button>
         <button class="modal-tab" data-tab="recovery">Recovery score</button>
         <button class="modal-tab" data-tab="fuel">Fuel risk score</button>
+        <button class="modal-tab" data-tab="flam">Flammability index</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
     </div>
@@ -480,6 +526,14 @@ const RECOVERY_COLORS = ['#B23A1F','#C08A3E','#9B9450','#3F5F3F'];
 const FUEL_LABELS = ['Low','Moderate','High','Very high'];
 const FUEL_COLORS = ['#3F5F3F','#C08A3E','#B23A1F','#7A2313'];
 
+const FLAM_LABELS = ['Very low','Low','Moderate','High','Very high'];
+const FLAM_COLORS = ['#0D7A6F','#E6C229','#F07714','#D61F3A','#5A0B2E'];
+const FLAM_NO_TSF = '#8A96A3';
+const NO_FIRE_YEARS = 30;
+const NO_FIRE_TSF_DAYS = NO_FIRE_YEARS * 365;
+const FLAM_A_BREAKS = [0.20,0.40,0.60,0.80];
+const FLAM_B_BREAKS = [0.05,0.25,1,10];
+
 const LAYER_MODES = [
   {key:'rgb', label:'Original image'},
   {key:'pv', label:'Vegetation (PV)'},
@@ -493,6 +547,7 @@ const LAYER_MODES = [
 const SCORE_MODES = [
   {key:'recovery', label:'Recovery score'},
   {key:'fuel', label:'Fuel risk score'},
+  {key:'flam', label:'Flammability index'},
 ];
 const VIEW_MODES = [...LAYER_MODES, ...SCORE_MODES];
 
@@ -503,6 +558,7 @@ const DEFAULT_THRESHOLDS = {
 const DEFAULT_WEIGHTS = {
   recovery:{pv:HAS_TSF?40:50,time:HAS_TSF?30:0,soilInv:HAS_TSF?20:30,npvInv:HAS_TSF?10:20},
   fuel:{npv:HAS_TSF?50:70,time:HAS_TSF?30:0,pvInv:HAS_TSF?20:30},
+  flam:{a:0.005, b:2, c:5},
 };
 
 const RULES = [
@@ -517,8 +573,8 @@ const RULES = [
 ];
 
 /* ============== STATE ============== */
-let state = {mode:'rgb', thresholds:JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS)),
-  weights:JSON.parse(JSON.stringify(DEFAULT_WEIGHTS)), selected:null};
+let state = {mode:'rgb', flamOption:'A', thresholds:JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS)),
+  weights:JSON.parse(JSON.stringify(DEFAULT_WEIGHTS)), selected:null, hover:null};
 let data = [];
 function validPixels(){
   if(_vp) return _vp;
@@ -536,11 +592,13 @@ function unpackGrid(g){
       const i=row*g.cols+col;
       const rawPv=g.bands.pv[i];
       if(rawPv<0){
-        out.push({row,col,valid:false,pv:0,npv:0,soil:0,water:0,rock:0,shade:0,none:0,tsf:null});
+        out.push({row,col,valid:false,pv:0,npv:0,soil:0,water:0,rock:0,shade:0,none:0,tsf:null,tsfFire:null,tsfAssumed:false});
         continue;
       }
       out.push({
         row,col,valid:true,
+        tsfFire:NO_FIRE_TSF_DAYS,
+        tsfAssumed:true,
         tsf:(g.bands.tsf && g.bands.tsf[i]>=0) ? g.bands.tsf[i] : null,
         pv:g.bands.pv[i]/scale,
         npv:g.bands.npv[i]/scale,
@@ -599,7 +657,82 @@ function classifyPixel(mode,p){
       return {idx,label:RECOVERY_LABELS[idx],color:RECOVERY_COLORS[idx],value:s}; }
     case 'fuel': { const s=fuelScore(p); const idx=s<25?0:s<50?1:s<75?2:3;
       return {idx,label:FUEL_LABELS[idx],color:FUEL_COLORS[idx],value:s}; }
+    case 'flam': {
+      const s=flamValue(p);
+      if(s==null) return {idx:-1,label:'No TSF (days)',color:FLAM_NO_TSF,value:null};
+      const breaks=state.flamOption==='B'?FLAM_B_BREAKS:FLAM_A_BREAKS;
+      return classifyBreaks(s,breaks,FLAM_LABELS,FLAM_COLORS);
+    }
   }
+}
+function tfDays(p){
+  if(!p || !p.valid) return null;
+  if(p.tsfFire!=null && p.tsfFire>=0) return p.tsfFire;
+  if(p.tsf!=null && p.tsf>=0) return p.tsf;
+  return NO_FIRE_TSF_DAYS;
+}
+function npvOfVeg(p){
+  const veg=p.pv+p.npv;
+  return veg<1e-6 ? 0 : p.npv/veg;
+}
+function flamLinear(p){
+  const tf=tfDays(p);
+  if(tf==null) return null;
+  const w=state.weights.flam;
+  return w.a*tf + w.b*npvOfVeg(p) - w.c;
+}
+function flamA(p){
+  const z=flamLinear(p);
+  if(z==null) return null;
+  const x=Math.max(-60, Math.min(60, z));
+  return 1/(1+Math.exp(-x));
+}
+function flamB(p){
+  const z=flamLinear(p);
+  if(z==null) return null;
+  const x=Math.max(-20, Math.min(20, z));
+  return Math.exp(x);
+}
+function flamValue(p){ return state.flamOption==='B' ? flamB(p) : flamA(p); }
+function flamFmt(v){
+  if(v==null || !Number.isFinite(v)) return '—';
+  const x=Number(v);
+  if(x>=10000) return x.toExponential(2).replace('e+','e');
+  if(x>=100) return x.toFixed(0);
+  if(x>=10) return x.toFixed(1);
+  return x.toFixed(2);
+}
+function flamFmtShort(v){
+  if(v==null || !Number.isFinite(v)) return '—';
+  const x=Number(v);
+  if(x>=10000) return x.toExponential(1).replace('e+','e');
+  if(x>=1000) return (x/1000).toFixed(1)+'k';
+  if(x>=100) return x.toFixed(0);
+  return x.toFixed(2);
+}
+function tsfSource(p){
+  if(p.tsfAssumed || (p.tsfFire==null && (p.tsf==null || p.tsf<0)))
+    return 'No recorded fire · assumed 30 years (10,950 days)';
+  if(p.tsfFire!=null && p.tsfFire>=0) return 'Scene date − last fire date';
+  if(p.tsf!=null && p.tsf>=0) return 'TSF raster (fallback)';
+  return 'No recorded fire · assumed 30 years (10,950 days)';
+}
+function syncFlamOpts(){
+  const flam=state.mode==='flam';
+  const box=document.getElementById('flamOpts');
+  if(box){
+    box.classList.toggle('show', flam);
+    box.querySelectorAll('[data-flam]').forEach(b=>{
+      b.classList.toggle('active', b.dataset.flam===state.flamOption);
+    });
+  }
+  document.querySelectorAll('.dial-card[data-mode]').forEach(card=>{
+    const mode=card.dataset.mode;
+    const opt=card.dataset.flamOpt;
+    card.classList.toggle('on', state.mode===mode && (!opt || opt===state.flamOption));
+  });
+  const fiBlock=document.getElementById('flamWeightBlock');
+  if(fiBlock) fiBlock.style.display=flam?'':'none';
 }
 function normTime(p){ if(p.tsf==null) return 0; const capDays=state.thresholds.tsfYears[3]*365; return Math.min(p.tsf/capDays,1); }
 function recoveryScore(p){
@@ -615,6 +748,24 @@ function fuelScore(p){
 function scoreCategory(score,labels){ const idx=score<25?0:score<50?1:score<75?2:3; return {idx,label:labels[idx]}; }
 
 /* ============== RENDER: TABSTRIP ============== */
+function setScoreMode(mode, flamOption){
+  hideTsfPage();
+  state.mode=mode;
+  if(flamOption) state.flamOption=flamOption;
+  layerCache=null;
+  layerCacheMode=null;
+  renderTabs();
+  syncFlamOpts();
+  renderMap();
+  renderMapKey();
+  renderTickets();
+  renderDials();
+  renderSceneFireChips();
+  syncFiresLayer();
+  renderFieldLog();
+  renderSpecimen();
+  if(state.mode==='flam') prepareFlamLayer();
+}
 function fillTabstrip(el, modes){
   if(!el) return;
   el.innerHTML='';
@@ -623,19 +774,7 @@ function fillTabstrip(el, modes){
     b.type='button';
     b.className='tab'+(state.mode===m.key?' active':'');
     b.textContent=m.label;
-    b.onclick=()=>{
-      hideTsfPage();
-      state.mode=m.key;
-      layerCache=null;
-      layerCacheMode=null;
-      renderTabs();
-      renderMap();
-      renderMapKey();
-      renderSceneFireChips();
-      syncFiresLayer();
-      renderFieldLog();
-      renderSpecimen();
-    };
+    b.onclick=()=>setScoreMode(m.key);
     el.appendChild(b);
   });
 }
@@ -960,29 +1099,95 @@ function hideTsfPage(){
 function renderTabs(){
   fillTabstrip(document.getElementById('tabstrip'), LAYER_MODES);
   fillTabstrip(document.getElementById('scoreTabs'), SCORE_MODES);
+  syncFlamOpts();
 }
 
 /* ============== RENDER: DIALS + TICKETS ============== */
-function renderDials(){
+let tileDialCache=null;
+function activePixel(){
+  const idx=state.selected!=null?state.selected:state.hover;
+  if(idx==null || !data[idx] || !data[idx].valid) return null;
+  return data[idx];
+}
+function tileDialStats(){
+  if(tileDialCache) return tileDialCache;
   const vp=validPixels();
   const recScores=vp.map(recoveryScore), fuelScores=vp.map(fuelScore);
   const n=vp.length||1;
-  const avgRec=Math.round(recScores.reduce((a,b)=>a+b,0)/n);
-  const avgFuel=Math.round(fuelScores.reduce((a,b)=>a+b,0)/n);
-  const recCat=scoreCategory(avgRec,RECOVERY_LABELS), fuelCat=scoreCategory(avgFuel,FUEL_LABELS);
+  const flamAScores=vp.map(flamA).filter(v=>v!=null);
+  const flamBScores=vp.map(flamB).filter(v=>v!=null);
+  tileDialCache={
+    recScores, fuelScores,
+    avgRec:Math.round(recScores.reduce((a,b)=>a+b,0)/n),
+    avgFuel:Math.round(fuelScores.reduce((a,b)=>a+b,0)/n),
+    flamA:flamAScores.length? mean(flamAScores):null,
+    flamB:flamBScores.length? mean(flamBScores):null,
+    flamAScores, flamBScores,
+  };
+  return tileDialCache;
+}
+function setDialScope(id, pixel, extra){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.textContent=pixel? ('this pixel'+(extra? ' · '+extra:'')) : 'tile mean';
+}
+function renderDials(){
+  const t=tileDialStats();
+  const pixel=activePixel();
+  const rec=pixel? recoveryScore(pixel) : t.avgRec;
+  const fuel=pixel? fuelScore(pixel) : t.avgFuel;
+  const recCat=scoreCategory(rec,RECOVERY_LABELS), fuelCat=scoreCategory(fuel,FUEL_LABELS);
 
   const ringR=document.getElementById('dialRecovery');
-  ringR.style.background=`conic-gradient(${RECOVERY_COLORS[recCat.idx]} ${avgRec*3.6}deg, var(--line) 0deg)`;
-  document.getElementById('dialRecoveryNum').textContent=avgRec;
-  document.getElementById('dialRecoveryCat').textContent=recCat.label;
+  ringR.style.background=`conic-gradient(${RECOVERY_COLORS[recCat.idx]} ${rec*3.6}deg, var(--line) 0deg)`;
+  document.getElementById('dialRecoveryNum').textContent=rec;
+  document.getElementById('dialRecoveryCat').textContent=['Very poor','Poor','Moderate','Healthy'][recCat.idx];
+  setDialScope('dialRecoveryScope', pixel);
 
   const ringF=document.getElementById('dialFuel');
-  ringF.style.background=`conic-gradient(${FUEL_COLORS[fuelCat.idx]} ${avgFuel*3.6}deg, var(--line) 0deg)`;
-  document.getElementById('dialFuelNum').textContent=avgFuel;
+  ringF.style.background=`conic-gradient(${FUEL_COLORS[fuelCat.idx]} ${fuel*3.6}deg, var(--line) 0deg)`;
+  document.getElementById('dialFuelNum').textContent=fuel;
   document.getElementById('dialFuelCat').textContent=fuelCat.label;
+  setDialScope('dialFuelScope', pixel);
 
-  document.getElementById('distRecovery').innerHTML=distMini(recScores,RECOVERY_COLORS);
-  document.getElementById('distFuel').innerHTML=distMini(fuelScores,FUEL_COLORS);
+  document.getElementById('distRecovery').innerHTML=distMini(t.recScores,RECOVERY_COLORS);
+  document.getElementById('distFuel').innerHTML=distMini(t.fuelScores,FUEL_COLORS);
+  paintFlamDial('A', pixel, t);
+  paintFlamDial('B', pixel, t);
+}
+function paintFlamDial(which, pixel, t){
+  t=t||tileDialStats();
+  const fn=which==='B'?flamB:flamA;
+  const breaks=which==='B'?FLAM_B_BREAKS:FLAM_A_BREAKS;
+  const scores=which==='B'?t.flamBScores:t.flamAScores;
+  const avg=which==='B'?t.flamB:t.flamA;
+  const val=pixel? fn(pixel) : avg;
+  const cls=val==null? {idx:-1,label:'Need TSF',color:'var(--line)'}
+    : classifyBreaks(val,breaks,FLAM_LABELS,FLAM_COLORS);
+  const ring=document.getElementById(which==='B'?'dialFlamB':'dialFlamA');
+  if(!ring) return;
+  const sweep=cls.idx<0?360:(cls.idx+1)*72;
+  ring.style.background=cls.idx<0
+    ? 'conic-gradient(var(--line) 360deg)'
+    : `conic-gradient(${cls.color} ${sweep}deg, var(--line) 0deg)`;
+  const numEl=document.getElementById(which==='B'?'dialFlamBNum':'dialFlamANum');
+  const txt=val==null?'—':flamFmtShort(val);
+  numEl.textContent=txt;
+  numEl.classList.toggle('wide', txt.length>5);
+  const tf=pixel? tfDays(pixel) : null;
+  document.getElementById(which==='B'?'dialFlamBCat':'dialFlamACat').textContent=
+    pixel && tf!=null ? (cls.label+' · '+tf.toLocaleString()+' d') : cls.label;
+  setDialScope(which==='B'?'dialFlamBScope':'dialFlamAScope', pixel, pixel && pixel.tsfAssumed ? '30 yr' : (pixel? 'fire':'') );
+  const dist=document.getElementById(which==='B'?'distFlamB':'distFlamA');
+  if(dist){
+    const counts=[0,0,0,0,0];
+    scores.forEach(s=>{
+      const idx=classifyBreaks(s,breaks,FLAM_LABELS,FLAM_COLORS).idx;
+      if(idx>=0) counts[idx]++;
+    });
+    const nF=scores.length||1;
+    dist.innerHTML=counts.map((c,i)=>`<span style="width:${c/nF*100}%;background:${FLAM_COLORS[i]}"></span>`).join('');
+  }
 }
 function distMini(scores,colors){
   const counts=[0,0,0,0];
@@ -997,14 +1202,33 @@ function renderTickets(){
   const n=vp.length||1;
   const pctSoil=Math.round(vp.filter(p=>p.soil>0.50).length/n*100);
   const pctHighFuel=Math.round(vp.filter(p=>fuelScore(p)>=50).length/n*100);
-  const km2=(n * G.cellMetersX * G.cellMetersY / 1e6).toFixed(1);
-  el.innerHTML=`
-    <div class="ticket"><span class="t-label">Modeled cells</span><span class="t-val mono">${n.toLocaleString()}</span></div>
-    <div class="ticket"><span class="t-label">Area represented</span><span class="t-val mono">${km2} km²</span></div>
-    <div class="ticket"><span class="t-label">Mean PV</span><span class="t-val mono">${mean(vp.map(p=>p.pv)).toFixed(2)}</span></div>
-    <div class="ticket"><span class="t-label">High bare soil</span><span class="t-val mono">${pctSoil}%</span></div>
-    <div class="ticket"><span class="t-label">High+ fuel risk</span><span class="t-val mono">${pctHighFuel}%</span></div>
-  `;
+  const km2=(n * G.cellMetersX * G.cellMetersY / 1e6);
+  const row=(label,val)=>`<div class="stats-row"><span>${label}</span><b>${val}</b></div>`;
+  let html=`<div class="stats-card">
+    <div class="stats-head">Scene</div>
+    ${row('Modeled cells', n.toLocaleString())}
+    ${row('Area', km2.toLocaleString(undefined,{maximumFractionDigits:1})+' km²')}
+    ${row('Mean PV', mean(vp.map(p=>p.pv)).toFixed(2))}
+    <div class="stats-head">Cover</div>
+    ${row('High bare soil', pctSoil+'%')}
+    ${row('High+ fuel risk', pctHighFuel+'%')}`;
+  if(state.mode==='flam'){
+    const withTf=vp.filter(p=>tfDays(p)!=null);
+    const assumed=vp.filter(p=>p.tsfAssumed).length;
+    const fromFire=vp.filter(p=>!p.tsfAssumed && tfDays(p)!=null).length;
+    const opt=state.flamOption==='B'?'B':'A';
+    const fs=withTf.map(flamValue).filter(v=>v!=null);
+    const tfs=withTf.map(tfDays);
+    html+=`
+    <div class="stats-head">Flammability ${opt}</div>
+    ${row('From a fire', fromFire.toLocaleString())}
+    ${row('No fire (30 yr)', assumed.toLocaleString())}
+    ${row('Mean TSF', tfs.length? Math.round(mean(tfs)).toLocaleString()+' d':'—')}
+    ${row('Mean NPV/veg', withTf.length? mean(withTf.map(npvOfVeg)).toFixed(2):'—')}
+    ${row('Mean FI-'+opt, fs.length? flamFmt(mean(fs)):'—')}`;
+  }
+  html+='</div>';
+  el.innerHTML=html;
 }
 
 /* ============== RENDER: MAP (Leaflet basemap + MESMA overlay) ============== */
@@ -1149,7 +1373,7 @@ function maybePunchRgb(){
   punchedUrl=off.toDataURL('image/png');
   if(overlay && (state.mode==='rgb' || state.mode==='fires')) overlay.setUrl(punchedUrl);
 }
-function invalidateLayer(){ layerCache=null; layerCacheMode=null; }
+function invalidateLayer(){ layerCache=null; layerCacheMode=null; tileDialCache=null; }
 function punchBlack(o,w,h){
   const imgd=o.getImageData(0,0,w,h);
   const d=imgd.data;
@@ -1158,8 +1382,125 @@ function punchBlack(o,w,h){
   }
   o.putImageData(imgd,0,0);
 }
+function sceneDateMs(){
+  const t=Date.parse((G && G.sceneDate) || '2026-07-28');
+  return Number.isFinite(t) ? t : Date.parse('2026-07-28');
+}
+function ringToPixelPath(ctx, ring, w, h){
+  if(!ring || ring.length<3 || !LL) return;
+  ctx.moveTo(
+    (ring[0][0]-LL.west)/(LL.east-LL.west)*w,
+    (LL.north-ring[0][1])/(LL.north-LL.south)*h
+  );
+  for(let i=1;i<ring.length;i++){
+    ctx.lineTo(
+      (ring[i][0]-LL.west)/(LL.east-LL.west)*w,
+      (LL.north-ring[i][1])/(LL.north-LL.south)*h
+    );
+  }
+  ctx.closePath();
+}
+function rasterizeFireDays(features){
+  const w=COLS, h=ROWS;
+  const off=document.createElement('canvas');
+  off.width=w; off.height=h;
+  const ctx=off.getContext('2d', {willReadFrequently:true});
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,w,h);
+  const scene=sceneDateMs();
+  const fires=features.map(f=>{
+    const p=f.properties||{};
+    const burn=Date.parse(p.burn_date||p.Ig_Date||p.ALARM_DATE||'');
+    return {geom:f.geometry, burn};
+  }).filter(x=>x.geom && Number.isFinite(x.burn) && x.burn<=scene)
+    .sort((a,b)=>a.burn-b.burn);
+  fires.forEach(({geom, burn})=>{
+    const enc=Math.max(0, Math.round((scene-burn)/86400000))+1;
+    ctx.fillStyle=`rgb(${enc&255},${(enc>>8)&255},${(enc>>16)&255})`;
+    const polys=geom.type==='MultiPolygon' ? geom.coordinates
+      : geom.type==='Polygon' ? [geom.coordinates] : [];
+    polys.forEach(poly=>{
+      if(!poly || !poly.length) return;
+      ctx.beginPath();
+      poly.forEach(ring=>ringToPixelPath(ctx, ring, w, h));
+      ctx.fill('evenodd');
+    });
+  });
+  const pix=ctx.getImageData(0,0,w,h).data;
+  const out=new Int32Array(w*h);
+  out.fill(-1);
+  for(let i=0;i<w*h;i++){
+    const j=i*4;
+    if(pix[j+3]<128) continue;
+    const enc=pix[j]+(pix[j+1]<<8)+(pix[j+2]<<16);
+    if(enc>0) out[i]=enc-1;
+  }
+  return out;
+}
+function applyFireTsfToPixels(){
+  if(!data.length || !LL) return 0;
+  let days=null;
+  if(tsfFires){
+    const tile=MESMA_BOUNDS ? L.latLngBounds(MESMA_BOUNDS) : null;
+    const list=(tsfFires.features||[]).filter(f=>{
+      if(!tile) return true;
+      const b=geomBBox(f.geometry);
+      return b && b.intersects(tile);
+    });
+    if(list.length) days=rasterizeFireDays(list);
+  }
+  let n=0;
+  for(let i=0;i<data.length;i++){
+    if(!data[i].valid) continue;
+    if(days && days[i]>=0){
+      data[i].tsfFire=days[i];
+      data[i].tsfAssumed=false;
+      n++;
+    } else {
+      data[i].tsfFire=NO_FIRE_TSF_DAYS;
+      data[i].tsfAssumed=true;
+    }
+  }
+  return n;
+}
+async function prepareFlamLayer(){
+  await loadTsfYears();
+  applyFireTsfToPixels();
+  invalidateLayer();
+  renderMap();
+  renderMapKey();
+  renderDials();
+  renderTickets();
+  renderSpecimen();
+}
+function getFlamCanvas(){
+  const maxSide=768;
+  let scale=Math.floor(maxSide/Math.max(COLS,ROWS,1));
+  if(scale<2) scale=2;
+  if(COLS*scale>1024) scale=Math.max(1, Math.floor(1024/Math.max(COLS,1)));
+  const gap=scale>=3?1:0;
+  const off=document.createElement('canvas');
+  off.width=Math.max(1,COLS*scale);
+  off.height=Math.max(1,ROWS*scale);
+  const o=off.getContext('2d', {alpha:true});
+  o.imageSmoothingEnabled=false;
+  o.clearRect(0,0,off.width,off.height);
+  for(let i=0;i<data.length;i++){
+    const p=data[i];
+    if(!p.valid) continue;
+    o.fillStyle=classifyPixel('flam', p).color;
+    o.fillRect(p.col*scale+gap, p.row*scale+gap, Math.max(1,scale-gap), Math.max(1,scale-gap));
+  }
+  return off;
+}
 function getLayerCanvas(){
-  if(layerCache && layerCacheMode===state.mode) return layerCache;
+  const cacheKey=state.mode==='flam' ? 'flam-'+state.flamOption : state.mode;
+  if(layerCache && layerCacheMode===cacheKey) return layerCache;
+  if(state.mode==='flam'){
+    layerCache=getFlamCanvas();
+    layerCacheMode=cacheKey;
+    return layerCache;
+  }
   const {w,h}=contentSize();
   const off=document.createElement('canvas');
   off.width=w; off.height=h;
@@ -1178,7 +1519,7 @@ function getLayerCanvas(){
       o.fillRect(p.col*cw, p.row*ch, Math.ceil(cw), Math.ceil(ch));
     }
   }
-  layerCache=off; layerCacheMode=state.mode;
+  layerCache=off; layerCacheMode=cacheKey;
   return off;
 }
 function cellFromLatLng(latlng){
@@ -1208,7 +1549,9 @@ function sharpenOverlay(){
   const img=overlay && overlay.getElement && overlay.getElement();
   if(img){
     img.classList.add('mesma-overlay');
+    img.classList.toggle('flam-pixels', state.mode==='flam');
     img.style.imageRendering='pixelated';
+    img.style.background='transparent';
   }
 }
 function renderMap(){
@@ -1217,7 +1560,9 @@ function renderMap(){
     return;
   }
   if(!mesmaMap || !overlay) return;
-  if(state.mode==='rgb'){
+  if(state.mode==='flam'){
+    overlay.setUrl(data.length ? getLayerCanvas().toDataURL('image/png') : 'data:image/gif;base64,R0lGODlhAQABAAAAACw=');
+  } else if(state.mode==='rgb'){
     overlay.setUrl(rgbOverlayUrl());
   } else if(data.length){
     overlay.setUrl(getLayerCanvas().toDataURL('image/png'));
@@ -1257,16 +1602,25 @@ function initMesmaMap(){
     const idx=cellFromLatLng(evt.latlng);
     if(idx===null){ tooltip.style.display='none'; return; }
     const p=data[idx], c=classifyPixel(state.mode,p);
-    placeTooltip(evt, `<b>${c.label}</b><br>${p.valid? `PV ${p.pv.toFixed(2)} · NPV ${p.npv.toFixed(2)} · soil ${p.soil.toFixed(2)}` : 'Unmodeled — streets show through'}`);
+    const tf=tfDays(p);
+    const extra=state.mode==='flam' && p.valid
+      ? `<br>TSF ${tf==null?'—':tf+' days'} · NPV/veg ${npvOfVeg(p).toFixed(2)}<br>FI-A ${flamFmt(flamA(p))} · FI-B ${flamFmt(flamB(p))}`
+      : (p.valid? `PV ${p.pv.toFixed(2)} · NPV ${p.npv.toFixed(2)} · soil ${p.soil.toFixed(2)}` : 'Unmodeled — streets show through');
+    placeTooltip(evt, `<b>${c.label}</b><br>${extra}`);
+    if(p.valid && state.hover!==idx){
+      state.hover=idx;
+      renderDials();
+    }
   });
-  mesmaMap.on('mouseout', ()=>{ tooltip.style.display='none'; });
+  mesmaMap.on('mouseout', ()=>{ tooltip.style.display='none'; state.hover=null; renderDials(); });
   mesmaMap.on('click', evt=>{
     if(state.mode==='fires') return;
     const idx=cellFromLatLng(evt.latlng);
     if(idx===null) return;
-    if(!data[idx].valid){ state.selected=null; renderMap(); renderSpecimen(); return; }
+    if(!data[idx].valid){ state.selected=null; renderMap(); renderDials(); renderSpecimen(); return; }
     state.selected=idx;
     renderMap();
+    renderDials();
     renderSpecimen();
   });
   const op=document.getElementById('mesmaOpacity');
@@ -1348,6 +1702,7 @@ function legendConfigFor(mode){
     case 'shade': return {labels:SHADE_LABELS,colors:SHADE_COLORS};
     case 'recovery': return {labels:RECOVERY_LABELS,colors:RECOVERY_COLORS};
     case 'fuel': return {labels:FUEL_LABELS,colors:FUEL_COLORS};
+    case 'flam': return {labels:FLAM_LABELS,colors:FLAM_COLORS};
   }
 }
 function renderMapKey(){
@@ -1361,6 +1716,20 @@ function renderMapKey(){
     el.innerHTML=cfg.labels.map((lab,i)=>{
       return `<div class="map-key-item"><span class="key-swatch" style="background:${cfg.colors[i]}"></span>${lab}</div>`;
     }).join('') + `<div class="map-key-item" style="width:100%">Native 10 m MESMA RGB from the fractions cube (R=soil, G=PV, B=NPV).</div>`;
+    return;
+  }
+  if(state.mode==='flam'){
+    const opt=state.flamOption==='B'?'B':'A';
+    const formula=opt==='B'
+      ? 'FI<sub>B</sub> = e<sup>(a·TF + b·NPV − c)</sup>'
+      : 'FI<sub>A</sub> = 1 / (1 + e<sup>−(a·TF + b·NPV − c)</sup>)';
+    const nAll=vp.length||1;
+    const nNone=vp.filter(p=>flamValue(p)==null).length;
+    el.innerHTML=cfg.labels.map((lab,i)=>{
+      const pct=Math.round(counts[i]/nAll*100);
+      return `<div class="map-key-item"><span class="key-swatch" style="background:${cfg.colors[i]}"></span>${lab} <span class="key-pct mono">${pct}%</span></div>`;
+    }).join('') + (nNone?`<div class="map-key-item"><span class="key-swatch" style="background:${FLAM_NO_TSF}"></span>No TSF <span class="key-pct mono">${Math.round(nNone/nAll*100)}%</span></div>`:'')
+      + `<div class="map-key-item" style="width:100%"><b>Option ${opt}</b> · every modeled cell in this tile is a pixel.<br>${formula}<br>TSF<sub>days</sub> = scene date − last fire date. No recorded fire → 30 years (10,950 days).</div>`;
     return;
   }
   if(state.mode==='fires'){
@@ -1451,11 +1820,48 @@ function renderFieldLog(){
 }
 
 /* ============== RENDER: SPECIMEN CARD ============== */
+function flamOptionMeta(){
+  const opt=state.flamOption==='B'?'B':'A';
+  return opt==='B'
+    ? {opt, name:'Option B · exponential', formula:'FI<sub>B</sub> = e<sup>(a·TF + b·NPV − c)</sup>'}
+    : {opt, name:'Option A · sigmoid (0–1)', formula:'FI<sub>A</sub> = 1 / (1 + e<sup>−(a·TF + b·NPV − c)</sup>)'};
+}
+function flamPopHtml(p){
+  const meta=flamOptionMeta();
+  const val=flamValue(p);
+  const c=classifyPixel('flam', p);
+  const tf=tfDays(p);
+  const npv=npvOfVeg(p);
+  const w=state.weights.flam;
+  const z=flamLinear(p);
+  return `
+    <div class="flam-pop">
+      <div class="sf-label">${meta.name}</div>
+      <div class="sf-val">${flamFmt(val)}</div>
+      <div class="sf-cat">${c.label}</div>
+      <table class="flam-table">
+        <tr><th>Scene date</th><td>${(G && G.sceneDate) || '—'}</td></tr>
+        <tr><th>TSF (days)</th><td>${tf==null?'—':tf.toLocaleString()}</td></tr>
+        <tr><th>Formula</th><td style="font-family:'IBM Plex Sans',sans-serif;font-weight:500">scene date − last fire date</td></tr>
+        <tr><th>Source</th><td style="font-family:'IBM Plex Sans',sans-serif;font-weight:500">${tsfSource(p)}</td></tr>
+        <tr><th>NPV / (NPV+PV)</th><td>${npv.toFixed(2)}</td></tr>
+        <tr><th>a · TF</th><td>${tf==null?'—':(w.a*tf).toFixed(2)}</td></tr>
+        <tr><th>b · NPV</th><td>${(w.b*npv).toFixed(2)}</td></tr>
+        <tr><th>z = aTF + bNPV − c</th><td>${z==null?'—':z.toFixed(2)}</td></tr>
+      </table>
+      <div class="flam-formula">${meta.formula}<br>a=${w.a}, b=${w.b}, c=${w.c}</div>
+    </div>`;
+}
 function renderSpecimen(){
   if(state.mode==='fires'){ renderFireSide(); return; }
   const el=document.getElementById('specimenCard');
   if(state.selected===null){
-    el.innerHTML='<p class="specimen-empty">Click any cell on the map to inspect its metrics, category and matching field-log rules.</p>';
+    if(state.mode==='flam'){
+      const meta=flamOptionMeta();
+      el.innerHTML=`<p class="specimen-empty">Click a pixel to see <b>${meta.name}</b> for that cell.<br>${meta.formula}</p>`;
+    } else {
+      el.innerHTML='<p class="specimen-empty">Click any cell on the map to inspect its metrics, category and matching field-log rules.</p>';
+    }
     return;
   }
   const p=data[state.selected];
@@ -1474,6 +1880,7 @@ function renderSpecimen(){
   const compHtml=comp.map(([k,col,v])=>`<span style="width:${Math.max(v,0)*100}%;background:${col}" title="${k} ${v.toFixed(2)}"></span>`).join('');
 
   el.innerHTML=`
+    ${state.mode==='flam'?flamPopHtml(p):''}
     <div class="spec-grid">
       <div class="spec-field"><div class="sf-label">Location</div><div class="sf-val mono">${ll.lat.toFixed(3)}°, ${ll.lon.toFixed(3)}°</div><div class="sf-cat">r${p.row} c${p.col} · ~${Math.round(G.cellMetersX)} m</div></div>
       <div class="spec-field"><div class="sf-label">Dominant cover</div><div class="sf-val">${cDom.label}</div><div class="sf-cat">${(cDom.value*100).toFixed(0)}% of unshaded</div></div>
@@ -1541,6 +1948,12 @@ function renderDrawer(){
       ${sliderRow('Fuel &middot; 1&minus;PV','w-f-pv',0,100,1,state.weights.fuel.pvInv,v=>v)}
       <p class="weights-note">Time weights are 0 because this MESMA file has no time-since-fire band. Raise them only after a TSF raster is joined.</p>
     </div>
+    <div class="tblock" id="flamWeightBlock" style="display:none"><h4>Flammability index</h4>
+      ${sliderRow('a · TSF (days)','w-fi-a',0.001,0.02,0.001,state.weights.flam.a,v=>Number(v).toFixed(3))}
+      ${sliderRow('b · NPV/veg','w-fi-b',0.1,5,0.1,state.weights.flam.b,v=>Number(v).toFixed(1))}
+      ${sliderRow('c · threshold','w-fi-c',0,10,0.1,state.weights.flam.c,v=>Number(v).toFixed(1))}
+      <p class="weights-note">TF is days. NPV is NPV/(NPV+PV). A: 1/(1+e<sup>−(aTF+bNPV−c)</sup>). B: e<sup>(aTF+bNPV−c)</sup>. Defaults a=0.005, b=2, c=5.</p>
+    </div>
   `;
   bindThreshold('t-pv0',v=>{th.pv[0]=v;enforceAsc(th.pv,0,0.01);},v=>v.toFixed(2));
   bindThreshold('t-pv1',v=>{th.pv[1]=v;enforceAsc(th.pv,1,0.01);},v=>v.toFixed(2));
@@ -1565,6 +1978,9 @@ function renderDrawer(){
   bindThreshold('w-f-npv',v=>{state.weights.fuel.npv=v;},v=>v);
   bindThreshold('w-f-time',v=>{state.weights.fuel.time=v;},v=>v);
   bindThreshold('w-f-pv',v=>{state.weights.fuel.pvInv=v;},v=>v);
+  bindThreshold('w-fi-a',v=>{state.weights.flam.a=v;},v=>Number(v).toFixed(3));
+  bindThreshold('w-fi-b',v=>{state.weights.flam.b=v;},v=>Number(v).toFixed(1));
+  bindThreshold('w-fi-c',v=>{state.weights.flam.c=v;},v=>Number(v).toFixed(1));
 
   document.getElementById('resetLink').onclick=()=>{
     state.thresholds=JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS));
@@ -1657,9 +2073,7 @@ function fillHeroFromGrid(){
   }
   const banner=document.querySelector('.banner-note');
   if(banner){
-    banner.textContent = HAS_TSF
-      ? `Sentinel-2 tile ${G.tile} (${G.sceneDate}) with MESMA fractions and time-since-fire joined from new_data/Time_since_fire.`
-      : 'This file is a MESMA fractions cube only. Time-since-fire is not present, so recovery and fuel scores use vegetation, soil, and dead-fuel fractions (time weight defaults to 0).';
+    banner.textContent = `Sentinel-2 tile ${G.tile} (${G.sceneDate}). TSF_days = scene date − last fire date (most recent overlapping fire before the image). No recorded fire → 30 years (10,950 days).`;
   }
 }
 function finishWithGrid(){
@@ -1672,6 +2086,7 @@ function finishWithGrid(){
   recompute();
   renderSceneFireChips();
   if(state.mode==='fires') syncFiresLayer();
+  prepareFlamLayer();
 }
 function whenGridReady(cb){
   if(window.MESMA_GRID){ cb(); return; }
@@ -1704,6 +2119,28 @@ function init(){
       drawTsfGrids();
     });
   }
+  document.querySelectorAll('.dial-card[data-mode]').forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      if(e.target.closest('.info-icon')) return;
+      setScoreMode(card.dataset.mode, card.dataset.flamOpt);
+    });
+  });
+  document.getElementById('flamOpts')?.querySelectorAll('[data-flam]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      state.flamOption=b.dataset.flam;
+      layerCache=null;
+      layerCacheMode=null;
+      syncFlamOpts();
+      if(state.mode==='flam'){
+        invalidateLayer();
+        renderMap();
+        renderMapKey();
+        renderDials();
+        renderTickets();
+        renderSpecimen();
+      }
+    });
+  });
   initMesmaMap();
   renderTabs(); renderDrawer();
   renderSceneFireChips();
@@ -1726,9 +2163,32 @@ init();
       <p>Click any modeled cell to inspect shade-normalized fractions, dominant cover, recovery and fuel scores, and matching field-log rules.</p>
       <h3>Field notes drawer</h3>
       <p>Open "Field notes" below the map to adjust category thresholds and score weights. Changing a slider recalculates every layer, dial, and log entry live.</p>
+      <h3>Time since fire</h3>
+      <p>For each pixel, TSF is days from the last fire to the Sentinel-2 scene date. Perimeters: CAL FIRE FRAP, MTBS, and burn-date records. If several fires overlap, use the most recent fire before the image. If there is no recorded fire, TSF is <b>30 years</b> (10,950 days).</p>
+      <div class="formula-box">
+        <div>TSF<sub>days</sub> = satellite date − last fire date</div>
+      </div>
+      <h3>Flammability index</h3>
+      <p>Under <b>Scores → Flammability index</b>. TF is TSF in days. NPV is NPV/(NPV+PV). Defaults a = 0.005, b = 2, c = 5.</p>
+      <div class="formula-box">
+        <div>Option A (sigmoid, 0–1): FI<sub>A</sub> = 1 / (1 + e<sup>−(a·TF + b·NPV − c)</sup>)</div>
+        <div>Option B (exponential): FI<sub>B</sub> = e<sup>(a·TF + b·NPV − c)</sup></div>
+      </div>
     `,
     sources: `
-      <p>This view is driven by a single MESMA fractions cube. Time-since-fire is not in the file, so recovery-stage and TSF-weighted scores are disabled (time weight = 0).</p>
+      <p>MESMA fractions come from the Sentinel-2 cube for this tile and date. Time since fire is not a raster band in that cube. It is computed per pixel from historical wildfire perimeters.</p>
+      <h3>Time since fire</h3>
+      <p>Where and when fires burned: CAL FIRE FRAP, MTBS, and fire-occurrence / burn-date perimeters. Then:</p>
+      <div class="formula-box">
+        <div>TSF<sub>days</sub> = satellite date − last fire date</div>
+      </div>
+      <p>Overlapping fires: keep the most recent fire before the Sentinel-2 date. Pixels with no recorded fire are assigned <b>30 years</b> (10,950 days).</p>
+      <table class="info-table">
+        <tr><th>Last fire date</th><th>If scene is 16 Oct 2026</th></tr>
+        <tr><td>16 Oct 2025</td><td>365 days</td></tr>
+        <tr><td>16 Oct 2024</td><td>730 days</td></tr>
+        <tr><td>16 Oct 2020</td><td>2,191 days</td></tr>
+      </table>
       <h3>Input image</h3>
       <table class="info-table">
         <tr><th>Item</th><th>Value</th></tr>
@@ -1751,6 +2211,14 @@ init();
         <tr><td>Shade</td><td>Shadow fraction</td></tr>
       </table>
       <p>PV, NPV, soil, rock, and water in the atlas are shade-normalized (divided by 1 − shade) so they describe the unshaded surface mix.</p>
+      <h3>Flammability index</h3>
+      <div class="formula-box">
+        <div>TF = TSF<sub>days</sub> = scene date − last fire date</div>
+        <div>NPV = NPV / (NPV + PV)</div>
+        <div>Option A: FI<sub>A</sub> = 1 / (1 + e<sup>−(a·TF + b·NPV − c)</sup>)</div>
+        <div>Option B: FI<sub>B</sub> = e<sup>(a·TF + b·NPV − c)</sup></div>
+        <div>a = 0.005, b = 2, c = 5</div>
+      </div>
     `,
     thresholds: `
       <p>To make the outputs easier to interpret, continuous fraction values are grouped into operational categories. These ranges are the defaults &mdash; open "Field notes" below the map to adjust them.</p>
@@ -1820,11 +2288,45 @@ init();
       <div class="info-quote">This is an indicator based on satellite-derived variables. It is not a direct fire behavior prediction.</div>
       <p class="info-note">That distinction is important. Weights are adjustable in the "Field notes" drawer below the map.</p>
     `,
+    flam: `
+      <p>Flammability index is computed on every modeled MESMA cell for this scene (July or October). Time since fire is in <b>days</b>.</p>
+      <h3>Time since fire</h3>
+      <p>From historical wildfire perimeters (CAL FIRE FRAP, MTBS, burn-date rasters). For each pixel:</p>
+      <div class="formula-box">
+        <div>TSF<sub>days</sub> = satellite date − last fire date</div>
+      </div>
+      <p>If several fires overlap, use the most recent fire before the Sentinel-2 date. Example if the image is 16 October 2026:</p>
+      <table class="info-table">
+        <tr><th>Last fire</th><th>TSF (days)</th></tr>
+        <tr><td>16 Oct 2025</td><td>365</td></tr>
+        <tr><td>16 Oct 2024</td><td>730</td></tr>
+        <tr><td>16 Oct 2020</td><td>2,191</td></tr>
+        <tr><td>No recorded fire</td><td>10,950 (30 years)</td></tr>
+      </table>
+      <h3>Inputs</h3>
+      <table class="info-table">
+        <tr><th>Symbol</th><th>Meaning</th></tr>
+        <tr><td>TF</td><td>TSF<sub>days</sub> for that pixel</td></tr>
+        <tr><td>NPV</td><td>NPV / (NPV + PV) — dead fuel as a share of total vegetation</td></tr>
+        <tr><td>a, b, c</td><td>Weights. Defaults a = 0.005, b = 2, c = 5</td></tr>
+      </table>
+      <p>a is smaller than b, but TF is in days, so a·TF still dominates a typical NPV term (for example 1,000 days × 0.005 = 5 vs b·NPV ≤ 2).</p>
+      <h3>Option A — weighted sigmoid (bounded 0–1)</h3>
+      <div class="formula-box">
+        <div>FI<sub>A</sub> = 1 / (1 + e<sup>−(a·TF + b·NPV − c)</sup>)</div>
+      </div>
+      <h3>Option B — exponential (unbounded)</h3>
+      <div class="formula-box">
+        <div>FI<sub>B</sub> = e<sup>(a·TF + b·NPV − c)</sup></div>
+      </div>
+      <p>Open <b>Scores → Flammability index</b>, then switch Option A or Option B under the tab. Both values are shown when you click a pixel. Adjust a, b, c in Field notes.</p>
+      <div class="info-quote">This is a satellite-derived indicator, not a fire-behavior prediction.</div>
+    `,
   };
 
   const MODAL_TITLES = {
     guide:'How to read this dashboard', sources:'Data sources', thresholds:'Reading the thresholds',
-    recovery:'Recovery score', fuel:'Fuel risk score',
+    recovery:'Recovery score', fuel:'Fuel risk score', flam:'Flammability index',
   };
 
   const overlay=document.getElementById('infoModalOverlay');
